@@ -49,17 +49,17 @@ class SingleDownloadTab(ctk.CTkFrame):
     Esta clase contendrá TODA la UI y la lógica de la
     pestaña de descarga única.
     """
-    DOWNLOAD_BTN_COLOR = "#28A745"       
-    DOWNLOAD_BTN_HOVER = "#218838"       
-    PROCESS_BTN_COLOR = "#6F42C1"        
-    PROCESS_BTN_HOVER = "#59369A"        
+    DOWNLOAD_BTN_COLOR = "#C82333"       
+    DOWNLOAD_BTN_HOVER = "#DC3545"       
+    PROCESS_BTN_COLOR = "#C82333"        
+    PROCESS_BTN_HOVER = "#DC3545"        
 
-    ANALYZE_BTN_COLOR = "#007BFF"        
-    ANALYZE_BTN_HOVER = "#0069D9"        
+    ANALYZE_BTN_COLOR = "#C82333"        
+    ANALYZE_BTN_HOVER = "#DC3545"        
 
     
-    CANCEL_BTN_COLOR = "#DC3545"         
-    CANCEL_BTN_HOVER = "#C82333"         
+    CANCEL_BTN_COLOR = "#28A745"
+    CANCEL_BTN_HOVER = "#218838"         
     
     DISABLED_TEXT_COLOR = "#D3D3D3"
     DISABLED_FG_COLOR = "#565b5f" 
@@ -555,7 +555,7 @@ class SingleDownloadTab(ctk.CTkFrame):
         legend_text = (         
             "Guía de etiquetas en la lista:\n"
             "✨ Ideal: Formato óptimo para editar sin conversión.\n"
-            "⚠️ Recodificar: Formato no compatible con editores."
+            "⚠️ Recodificar: Formato no compatible con DaVinci Resolve."
         )
         self.format_warning_label = ctk.CTkLabel(
             details_frame, 
@@ -570,7 +570,7 @@ class SingleDownloadTab(ctk.CTkFrame):
         recode_title_label = ctk.CTkLabel(self.recode_main_frame, text="Opciones de Recodificación", font=ctk.CTkFont(weight="bold"))
         recode_title_label.pack(pady=(5,10))
 
-        recode_tooltip_text = "Permite convertir el archivo a un formato diferente.\nÚtil para mejorar la compatibilidad con editores \n(ej: Premiere, After Effects) o para reducir el tamaño del archivo."
+        recode_tooltip_text = "Permite convertir el archivo a un formato diferente.\nÚtil para mejorar la compatibilidad con editores \n(ej: DaVinci Resolve) o para reducir el tamaño del archivo."
         Tooltip(recode_title_label, recode_tooltip_text, delay_ms=1000)
 
         recode_mode_frame = ctk.CTkFrame(self.recode_main_frame, fg_color="transparent")
@@ -628,8 +628,8 @@ class SingleDownloadTab(ctk.CTkFrame):
             text="📤 Exportar",
             command=self.export_preset_file,
             state="disabled",
-            fg_color="#007BFF",
-            hover_color="#0069D9"
+            fg_color="#C82333",
+            hover_color="#8D1723"
         )
         self.export_preset_button.grid(row=0, column=1, padx=5, sticky="ew")
         
@@ -747,7 +747,7 @@ class SingleDownloadTab(ctk.CTkFrame):
         self.fps_checkbox.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="w")
 
         # --- AÑADIR ESTAS LÍNEAS (TOOLTIP 14) ---
-        fps_tooltip_text = "Fuerza una tasa de fotogramas constante (CFR).\n\nMuchos videos de internet usan FPS Variable (VFR), lo que causa problemas de audio desincronizado en editores como Premiere o After Effects. Activando esto se soluciona."
+        fps_tooltip_text = "Fuerza una tasa de fotogramas constante (CFR).\n\nMuchos videos de internet usan FPS Variable (VFR), lo que causa problemas de audio desincronizado en editores como DaVinci Resolve. Activando esto se soluciona."
         Tooltip(self.fps_checkbox, fps_tooltip_text, delay_ms=1000)
         # --- FIN DEL TOOLTIP ---
 
@@ -6790,7 +6790,7 @@ class SingleDownloadTab(ctk.CTkFrame):
         """Efecto visual cuando el archivo entra al área de drop"""
         print("DEBUG: 🎯 _on_drag_enter ejecutado")
         
-        self.thumbnail_container.configure(border_width=4, border_color="#007BFF")
+        self.thumbnail_container.configure(border_width=4, border_color="#C82333")
         self.dnd_overlay.configure(bg="#1a3d5c")
         
         if hasattr(self, 'thumbnail_label') and self.thumbnail_label and self.thumbnail_label.winfo_exists():
@@ -7111,7 +7111,7 @@ class SingleDownloadTab(ctk.CTkFrame):
         """Muestra feedback visual cuando se detecta un drop"""
         try:
             # Cambiar borde
-            self.thumbnail_container.configure(border_width=2, border_color="#007BFF")
+            self.thumbnail_container.configure(border_width=2, border_color="#C82333")
             
             # ✅ NO tocar el overlay, solo el thumbnail_label
             if hasattr(self, 'thumbnail_label') and self.thumbnail_label:

@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Build artifacts
+build/
+dist/
+*.spec
+*.egg-info/
+.eggs/
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Downloaded files
+# Ignore common media file formats that might be downloaded by the app
+*.mp4
+*.mkv
+*.webm
+*.mov
+*.avi
+*.mp3
+*.m4a
+*.ogg
+*.wav
+*.flac
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.part
+*.ytdl
+
+# MSYS2
+# Ignore MSYS2 installation directories if they are inside the project
+msys64/
+msys32/
+
+# Binaries and external tools
+# Ignoring the 'bin' directory which seems to contain external executables
+bin/
+
+# Log files
+*.log
+ffmpeg_encoders_log.txt
+
+# Local settings
+# Ignoring user-specific settings if any are created in the project root
+app_settings.json
+
+msys2-installer.exe

@@ -114,7 +114,7 @@ class CompromiseDialog(ctk.CTkToplevel):
             details_frame = ctk.CTkFrame(container, fg_color="transparent")
             details_frame.pack(pady=5, anchor="w")
             ctk.CTkLabel(details_frame, text="La mejor alternativa disponible es:", font=ctk.CTkFont(size=12)).pack(anchor="w")
-            details_label = ctk.CTkLabel(details_frame, text=details_message, font=ctk.CTkFont(size=13, weight="bold"), text_color="#52a2f2", wraplength=450, justify="left")
+            details_label = ctk.CTkLabel(details_frame, text=details_message, font=ctk.CTkFont(size=13, weight="bold"), text_color="#C82333", wraplength=450, justify="left")
             details_label.pack(anchor="w")
             question_label = ctk.CTkLabel(container, text="¿Deseas descargar esta versión en su lugar?", font=ctk.CTkFont(size=12), wraplength=450)
             question_label.pack(pady=10, anchor="w")

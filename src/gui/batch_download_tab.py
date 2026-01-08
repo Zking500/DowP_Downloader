@@ -47,12 +47,12 @@ class BatchDownloadTab(ctk.CTkFrame):
     pestaña de descarga por lotes.
     """
     # Colores copiados de SingleDownloadTab para consistencia visual
-    DOWNLOAD_BTN_COLOR = "#28A745"
-    DOWNLOAD_BTN_HOVER = "#218838"
-    PROCESS_BTN_COLOR = "#6F42C1"        
-    PROCESS_BTN_HOVER = "#59369A"
-    CANCEL_BTN_COLOR = "#DC3545"
-    CANCEL_BTN_HOVER = "#C82333"
+    DOWNLOAD_BTN_COLOR = "#C82333"
+    DOWNLOAD_BTN_HOVER = "#DC3545"
+    PROCESS_BTN_COLOR = "#C82333"        
+    PROCESS_BTN_HOVER = "#DC3545"
+    CANCEL_BTN_COLOR = "#28A745"
+    CANCEL_BTN_HOVER = "#218838"
     DISABLED_TEXT_COLOR = "#D3D3D3"
     DISABLED_FG_COLOR = "#565b5f"
     
@@ -501,8 +501,8 @@ class BatchDownloadTab(ctk.CTkFrame):
             batch_preset_actions_frame,
             text="📥 Importar",
             command=self.app.single_tab.import_preset_file,
-            fg_color="#28A745",
-            hover_color="#218838",
+            fg_color="#C82333",
+            hover_color="#8D1723",
             state="disabled" # ✅ Nace deshabilitado
         )
         self.batch_import_preset_button.grid(row=0, column=0, padx=(0, 5), sticky="ew")
@@ -512,8 +512,8 @@ class BatchDownloadTab(ctk.CTkFrame):
             text="📤 Exportar",
             command=self.app.single_tab.export_preset_file, # <-- Llama a la función de single_tab
             state="disabled",
-            fg_color="#007BFF",
-            hover_color="#0069D9"
+            fg_color="#C82333",
+            hover_color="#8D1723"
         )
         self.batch_export_preset_button.grid(row=0, column=1, padx=5, sticky="ew")
 
@@ -522,8 +522,8 @@ class BatchDownloadTab(ctk.CTkFrame):
             text="🗑️ Eliminar",
             command=self.app.single_tab.delete_preset_file, # <-- Llama a la función de single_tab
             state="disabled",
-            fg_color="#DC3545",
-            hover_color="#C82333"
+            fg_color="#28A745",
+            hover_color="#218838",
         )
         self.batch_delete_preset_button.grid(row=0, column=2, padx=(5, 0), sticky="ew")
         # --- FIN DE LA REORDENACIÓN Y ADICIÓN ---
@@ -616,11 +616,11 @@ class BatchDownloadTab(ctk.CTkFrame):
         
         self.auto_import_checkbox = ctk.CTkCheckBox(
             line2_frame, 
-            text="Import Adobe", 
+            text="Import DaVinci", 
             command=self.save_settings,
-            text_color="#FFC792",       
-            fg_color="#C17B42",         
-            hover_color="#9A6336"        
+            text_color="#FFFFFF",       
+            fg_color="#C82333",         
+            hover_color="#DC3545"        
         )
         self.auto_import_checkbox.grid(row=0, column=5, padx=5, pady=5, sticky="w")
         import_tooltip_text = "Habilita la importación automática de los archivos descargados a Premiere Pro y After Effects."
@@ -1107,7 +1107,7 @@ class BatchDownloadTab(ctk.CTkFrame):
 
         if status == "RUNNING":
             job_frame.title_label.configure(text_color="white")
-            job_frame.status_label.configure(text=message, text_color="#52a2f2") 
+            job_frame.status_label.configure(text=message, text_color="#C82333") 
             job_frame.progress_bar.grid() 
             
             # Usar valor numérico directo si es válido
@@ -1245,7 +1245,7 @@ class BatchDownloadTab(ctk.CTkFrame):
 
         new_frame = self.job_widgets.get(job_id)
         if new_frame:
-            new_frame.configure(border_color="#007BFF")
+            new_frame.configure(border_color="#C82333")
         
         # Si es el mismo, no hacer nada más
         if job_id == self.selected_job_id:

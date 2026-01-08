@@ -1,5 +1,27 @@
-import sys
 import os
+import sys
+
+# --- Solución Limpia para Cairo en Windows (Python 3.8+) ---
+if sys.platform == "win32":
+    msys_bin_path = "C:\\msys64\\mingw64\\bin"
+    if os.path.isdir(msys_bin_path):
+        # En Python 3.8+ en Windows, esta es la forma recomendada de añadir rutas de búsqueda de DLL.
+        # Es más seguro que modificar el PATH global.
+        if hasattr(os, 'add_dll_directory'):
+            try:
+                os.add_dll_directory(msys_bin_path)
+                print(f"INFO: Añadida la ruta de DLLs: {msys_bin_path}")
+            except Exception as e:
+                print(f"ERROR: No se pudo añadir la ruta de DLLs: {e}")
+        else:
+            # Fallback para versiones antiguas de Python (menos fiable)
+            print("ADVERTENCIA: Usando fallback de modificación de PATH. Se recomienda Python 3.8+.")
+            if msys_bin_path not in os.environ['PATH']:
+                os.environ['PATH'] = msys_bin_path + os.pathsep + os.environ['PATH']
+    else:
+        print(f"ADVERTENCIA: El directorio de MSYS2 no se encontró en {msys_bin_path}")
+# --- Fin de la Solución ---
+
 import subprocess
 import multiprocessing
 import tempfile  
@@ -10,7 +32,7 @@ import pillow_avif
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
-APP_VERSION = "1.3.4"
+APP_VERSION = "1.3.5"
 
 if getattr(sys, 'frozen', False):
     PROJECT_ROOT = os.path.dirname(sys.executable)
@@ -71,7 +93,7 @@ class SplashScreen:
         # --- ETIQUETA PRINCIPAL (Icono + Texto) ---
         main_label = tk.Label(
             self.root, 
-            text=f"Iniciando DowP v{APP_VERSION}", # <--- Texto con versión
+            text=f"Iniciando DowPE v{APP_VERSION} ", # <--- Texto con versión
             image=self.tk_image,                   # <--- Imagen
             compound="left",                       # <--- Imagen a la IZQUIERDA del texto
             padx=15,                               # Espacio extra

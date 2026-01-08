@@ -769,7 +769,7 @@ class ImageToolsTab(ctk.CTkFrame):
             font=ctk.CTkFont(size=12),
             bg="#1D1D1D",
             fg="#FFFFFF",
-            selectbackground="#1F6AA5",
+            selectbackground="#C82333",
             selectforeground="#FFFFFF",
             borderwidth=0,
             highlightthickness=1,
@@ -2103,7 +2103,7 @@ class ImageToolsTab(ctk.CTkFrame):
                 
                 if tool_info:
                     # 1. Mostrar "Consultando..."
-                    self.upscale_status_label.configure(text="Consultando tamaño...", text_color="#52a2f2")
+                    self.upscale_status_label.configure(text="Consultando tamaño...", text_color="#C82333")
                     self.update()
                     
                     # 2. Obtener peso remoto (HEAD request)
@@ -2119,7 +2119,7 @@ class ImageToolsTab(ctk.CTkFrame):
                     )
                     
                     if user_response:
-                        self.upscale_status_label.configure(text="Iniciando descarga...", text_color="#52a2f2")
+                        self.upscale_status_label.configure(text="Iniciando descarga...", text_color="#C82333")
                         
                         # Función interna para el hilo de descarga
                         def download_thread():
@@ -5093,7 +5093,7 @@ class ImageToolsTab(ctk.CTkFrame):
 
                 # Caso normal: Descarga Automática con PREGUNTA DE PESO
                 # Obtener peso remoto
-                self.rembg_status_label.configure(text="Consultando tamaño...", text_color="#52a2f2")
+                self.rembg_status_label.configure(text="Consultando tamaño...", text_color="#C82333")
                 self.update() # Refrescar UI momentáneamente
                 
                 # Hacemos esto en un hilo rápido o directo (HEAD es rápido)
@@ -5109,7 +5109,7 @@ class ImageToolsTab(ctk.CTkFrame):
                 )
                 
                 if user_response:
-                    self.rembg_status_label.configure(text="Iniciando descarga...", text_color="#52a2f2")
+                    self.rembg_status_label.configure(text="Iniciando descarga...", text_color="#C82333")
                     threading.Thread(
                         target=self._download_rembg_model_thread,
                         args=(model_info, file_path),
@@ -5139,7 +5139,7 @@ class ImageToolsTab(ctk.CTkFrame):
         try:
             # CORRECCIÓN: Usar la cola de la app principal para actualizar la UI
             self.app.ui_update_queue.put((
-                lambda: self.rembg_status_label.configure(text="🚀 Conectando...", text_color="#52a2f2"),
+                lambda: self.rembg_status_label.configure(text="🚀 Conectando...", text_color="#C82333"),
                 ()
             ))
             

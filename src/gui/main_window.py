@@ -166,16 +166,16 @@ def handle_clear_active_target():
         socketio.emit('active_target_update', {'activeTarget': None})
 
 # ==========================================
-# ✅ NUEVO: Escuchar archivos desde Adobe
+# ✅ NUEVO: Escuchar archivos desde el editor
 # ==========================================
-@socketio.on('adobe_push_files')
-def handle_adobe_push_files(data):
-    """Recibe una lista de archivos desde Premiere/AE y los procesa."""
+@socketio.on('push_files')
+def handle_push_files(data):
+    """Recibe una lista de archivos desde el editor y los procesa."""
     files = data.get('files', [])
     if files and main_app_instance:
-        print(f"INFO: Recibidos {len(files)} archivos desde Adobe.")
+        print(f"INFO: Recibidos {len(files)} archivos desde el editor.")
         # Usamos .after para ejecutar la lógica en el hilo principal de la UI
-        main_app_instance.after(0, main_app_instance.handle_adobe_files, files)
+        main_app_instance.after(0, main_app_instance.handle_editor_files, files)
 
 def run_flask_app():
     """Función que corre el servidor. Usa gevent para WebSockets."""
@@ -345,9 +345,9 @@ class MainWindow(TkBase):
 
     def __init__(self, launch_target=None, project_root=None, poppler_path=None, inkscape_path=None, splash_screen=None, app_version="0.0.0"):
         super().__init__()
-        
+
         # Guardamos la versión que recibimos de main.py
-        self.APP_VERSION = app_version 
+        self.APP_VERSION = app_version
         print(f"DEBUG: MainWindow recibió la versión: {self.APP_VERSION}")
 
         # --- CORRECCIÓN CRÍTICA: Registrar este Root INMEDIATAMENTE ---
@@ -376,7 +376,7 @@ class MainWindow(TkBase):
         # Aplicar estilos de CustomTkinter manualmente
         if TKDND_AVAILABLE:
             ctk.set_appearance_mode("Dark")
-            ctk.set_default_color_theme("blue")
+            ctk.set_default_color_theme("c:\\Users\\simel\\Documents\\GitHub\\DowP_Downloader\\red_theme.json")
             self.configure(bg="#2B2B2B")
 
         self.VIDEO_EXTENSIONS = VIDEO_EXTENSIONS
@@ -435,65 +435,13 @@ class MainWindow(TkBase):
         self.is_shutting_down = False
         self.cancellation_event = threading.Event()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.title(f"DowP {self.APP_VERSION}")
+        self.title("DowP (davinci version)")
         self.iconbitmap(resource_path("DowP-icon.ico"))
-        
-        # Obtener dimensiones de pantalla
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
+        self.geometry("1200x800")
+        self.minsize(940, 600)
 
-        # Margen de seguridad para Barra de Tareas (abajo) y Barra de Título (arriba)
-        # 100px es seguro para Windows/Mac/Linux
-        safe_height = screen_height - 100
-
-        # --- LÓGICA DE ADAPTACIÓN DE PANTALLA ---
-        # Umbral subido a 1020px para capturar resoluciones 1440x900 y 1280x1024
-        if screen_height < 1020:  
-            print(f"INFO: Pantalla compacta detectada ({screen_width}x{screen_height}). Ajustando.")
-            
-            # 1. Escalado: Si es muy pequeña (768p), 0.75x. Si es mediana (900p), 0.85x.
-            if screen_height < 800:
-                scale_factor = 0.75
-            else:
-                scale_factor = 0.85 # Un poco más grande para 900p
-            
-            ctk.set_widget_scaling(scale_factor)  
-            ctk.set_window_scaling(scale_factor)
-            
-            # 2. Dimensiones: Usar el ALTO SEGURO calculado
-            win_width = 800
-            win_height = safe_height # <--- ESTO GARANTIZA QUE NO SE CORTE
-            
-            # 3. Posición: Pegado arriba (Y=10) para aprovechar espacio
-            pos_x = (screen_width // 2) - (win_width // 2)
-            pos_y = 10 
-            
-            # 4. Minsize permisivo
-            min_w, min_h = 750, 500
-            
-        else: # Monitores grandes (1080p o más)
-            win_width = 835
-            win_height = 950
-            
-            # Centrado vertical estándar
-            pos_x = (screen_width // 2) - (win_width // 2)
-            pos_y = (screen_height // 2) - (win_height // 2)
-            
-            min_w, min_h = 835, 700
-            
-            # Escalado normal
-            ctk.set_widget_scaling(1.0)
-            ctk.set_window_scaling(1.0)
-
-        # Aplicar
-        self.geometry(f"{win_width}x{win_height}+{int(pos_x)}+{int(pos_y)}")
-        self.minsize(min_w, min_h)
-        
         self.is_updating_dimension = False
         self.current_aspect_ratio = None
-        
-        # Aplicar límite mínimo calculado
-        self.minsize(min_w, min_h)
         
         ctk.set_appearance_mode("Dark")
         server_thread = threading.Thread(target=run_flask_app, daemon=True)
@@ -788,7 +736,7 @@ class MainWindow(TkBase):
                 version_type = "Pre-release" if is_prerelease else "versión"
                 status_text = f"¡Nueva {version_type} {latest_version} disponible!"
 
-                self.single_tab.app_status_label.configure(text=status_text, text_color="#52a2f2")
+                self.single_tab.app_status_label.configure(text=status_text, text_color="#C82333")
 
                 # --- CAMBIO: INICIA EL PROCESO DE ACTUALIZACIÓN ---
                 installer_url = update_info.get("installer_url")
@@ -1910,65 +1858,61 @@ class MainWindow(TkBase):
         self.ffmpeg_processor.run_detection_async(self.on_ffmpeg_detection_complete)
 
     # ==========================================
-    # ✅ NUEVA FUNCIÓN: Router de Archivos Adobe
+    # ✅ NUEVA FUNCIÓN: Router de Archivos del Editor
     # ==========================================
-    def handle_adobe_files(self, file_paths):
+    def handle_editor_files(self, file_paths):
         """
         Clasifica y envía los archivos recibidos a la pestaña correcta.
+        - Si es un video o audio, va a la pestaña "Descarga Individual".
+        - Si es una imagen, va a la pestaña "Herramientas de Imagen".
         """
-        # 1. Normalizar rutas y verificar existencia
-        valid_paths = [os.path.normpath(p) for p in file_paths if os.path.exists(p)]
-        
-        if not valid_paths:
-            print("ADVERTENCIA: Ninguno de los archivos recibidos existe.")
+        if not file_paths:
             return
 
-        images = []
-        media = [] # Video y Audio
+        # Separar archivos por tipo
+        media_files = []
+        image_files = []
 
-        # 2. Clasificar
-        # Obtenemos extensiones de imagen de la pestaña (si existe) o usamos un set básico
-        img_exts = self.image_tab.COMPATIBLE_EXTENSIONS if hasattr(self, 'image_tab') else ('.png', '.jpg', '.jpeg')
-        
-        for path in valid_paths:
-            ext = os.path.splitext(path)[1].lower()
+        for path in file_paths:
+            # Asegurarse de que la ruta es absoluta y limpia
+            clean_path = os.path.abspath(os.path.normpath(path))
             
-            # Es imagen?
-            if ext in img_exts:
-                images.append(path)
-            # Es video o audio? (Usamos las constantes globales de la app)
-            elif ext.lstrip('.') in self.VIDEO_EXTENSIONS or ext.lstrip('.') in self.AUDIO_EXTENSIONS:
-                media.append(path)
-
-        # 3. Enrutar IMÁGENES -> Herramientas de Imagen
-        if images:
-            print(f"INFO: Enviando {len(images)} imágenes a Herramientas de Imagen.")
-            self.tab_view.set("Herramientas de Imagen")
-            self.image_tab._process_imported_files(images)
+            # Obtener extensión
+            _, ext = os.path.splitext(clean_path)
             
-            # Si SOLO había imágenes, terminamos aquí
-            if not media:
-                return
-
-        # 4. Enrutar MEDIA (Video/Audio)
-        if media:
-            count = len(media)
-            
-            if count == 1:
-                # CASO A: 1 Archivo -> Proceso Único
-                print(f"INFO: Enviando 1 archivo a Proceso Único: {media[0]}")
-                self.tab_view.set("Proceso Único")
-                # Llamamos a la nueva función pública que crearemos en el Paso 2
-                self.single_tab.import_local_file_from_path(media[0])
-                
+            # Clasificar
+            if ext.lower().lstrip('.') in VIDEO_EXTENSIONS or ext.lower().lstrip('.') in AUDIO_EXTENSIONS:
+                media_files.append(clean_path)
+            elif ext.lower() in {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff'}:
+                image_files.append(clean_path)
             else:
-                # CASO B: 2+ Archivos -> Proceso por Lotes
-                print(f"INFO: Enviando {count} archivos a Proceso por Lotes.")
-                self.tab_view.set("Proceso por Lotes")
-                # Usamos la función existente que maneja Drops
-                self.batch_tab._handle_dropped_batch_files(media)
-        
-        # Traer ventana al frente
-        self.deiconify()
+                print(f"ADVERTENCIA: Archivo '{os.path.basename(clean_path)}' con formato no soportado, será ignorado.")
+
+        # Procesar archivos de medios
+        if media_files:
+            # Cambiar a la pestaña de descarga individual si no está activa
+            if self.tab_view.get() != "Proceso Único":
+                self.tab_view.set("Proceso Único")
+                self.update() # Forzar actualización de la UI
+            
+            # Limpiar la entrada actual y añadir la nueva URL
+            self.single_tab.url_entry.delete(0, 'end')
+            # Solo tomamos el primer archivo de medios, ya que la pestaña individual solo maneja uno
+            self.single_tab.url_entry.insert(0, media_files[0]) 
+            self.single_tab.fetch_video_info()
+            print(f"INFO: Archivo de medios '{os.path.basename(media_files[0])}' cargado en 'Proceso Único'.")
+
+        # Procesar archivos de imagen
+        if image_files:
+            # Cambiar a la pestaña de herramientas de imagen
+            if self.tab_view.get() != "Herramientas de Imagen":
+                self.tab_view.set("Herramientas de Imagen")
+                self.update()
+            
+            # Cargar las imágenes en la pestaña de herramientas
+            self.image_tab.load_images_from_paths(image_files)
+            print(f"INFO: {len(image_files)} imágenes cargadas en 'Herramientas de Imagen'.")
+
+        # Traer la ventana al frente
         self.lift()
         self.focus_force()
