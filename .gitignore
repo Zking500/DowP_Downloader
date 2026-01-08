@@ -62,3 +62,4 @@ ffmpeg_encoders_log.txt
 app_settings.json
 
 msys2-installer.exe
+.venv-resolve-test
