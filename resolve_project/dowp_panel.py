@@ -2,11 +2,76 @@
 # DowP Connector for DaVinci Resolve
 # Requiere: python-socketio, PySide6
 
-import sys, os, json
+import sys, os, json, platform, traceback
 import socketio
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QCheckBox
 from PySide6.QtGui import QColor, QPalette
-import DaVinciResolveScript as bmd
+
+# ------------------- CONFIGURACIÓN DE RESOLVE -------------------
+RESOLVE_INSTALL_PATH = "C:/Program Files/Blackmagic Design/DaVinci Resolve"
+# ----------------------------------------------------------------
+
+def setup_resolve_environment(install_path):
+    """Prepara el entorno para la API de scripting de DaVinci Resolve."""
+    if platform.architecture()[0] != "64bit":
+        print("❌ ERROR: Se requiere una instalación de Python de 64 bits.")
+        return False
+    
+    try:
+        os.add_dll_directory(install_path)
+    except AttributeError:
+        os.environ["PATH"] = install_path + os.pathsep + os.environ["PATH"]
+
+    script_module_path = os.path.join(os.getenv("PROGRAMDATA"), "Blackmagic Design", "DaVinci Resolve", "Support", "Developer", "Scripting", "Modules")
+    if not os.path.isdir(script_module_path):
+        print(f"❌ ERROR: No se encuentra el directorio de módulos de scripting en: {script_module_path}")
+        return False
+    sys.path.append(script_module_path)
+
+    os.environ["RESOLVE_SCRIPT_API"] = os.path.join(os.getenv("PROGRAMDATA"), "Blackmagic Design", "DaVinci Resolve", "Support", "Developer", "Scripting")
+    os.environ["RESOLVE_SCRIPT_LIB"] = os.path.join(install_path, "fusionscript.dll")
+    
+    if not os.path.exists(os.environ["RESOLVE_SCRIPT_LIB"]):
+         print(f"❌ ERROR: No se encuentra fusionscript.dll en: {os.environ['RESOLVE_SCRIPT_LIB']}")
+         return False
+    return True
+
+def import_resolve_api():
+    """Importa la librería DaVinciResolveScript de forma robusta."""
+    try:
+        import DaVinciResolveScript as bmd
+        return bmd
+    except ImportError:
+        print("\n❌ ERROR CRÍTICO: No se pudo importar 'DaVinciResolveScript'.")
+        print("   Causas: Python 3.10 (64-bit) no usado, falta C++ Redistributable, o ruta de Resolve incorrecta.")
+        return None
+    except Exception as e:
+        print(f"\n❌ ERROR INESPERADO al importar: {e}")
+        traceback.print_exc()
+        return None
+
+# --- Inicialización del Entorno y API de Resolve ---
+if not setup_resolve_environment(RESOLVE_INSTALL_PATH):
+    sys.exit(1)
+
+bmd = import_resolve_api()
+if not bmd:
+    # Si no se puede importar, mostramos un panel de error simple en lugar de la UI completa.
+    app = QApplication(sys.argv)
+    error_widget = QWidget()
+    error_widget.setWindowTitle("Error Crítico")
+    layout = QVBoxLayout()
+    label = QLabel("No se pudo conectar con DaVinci Resolve.\n\n"
+                   "Verifica que:\n"
+                   "- Usas Python 3.10 (64-bit).\n"
+                   "- Tienes 'Microsoft Visual C++ Redistributable (x64)' instalado.\n"
+                   "- La ruta a DaVinci Resolve es correcta en el script.\n"
+                   "- El scripting externo está habilitado en las preferencias de Resolve.")
+    layout.addWidget(label)
+    error_widget.setLayout(layout)
+    error_widget.show()
+    sys.exit(app.exec())
+# ----------------------------------------------------
 
 CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".dowp_config.json")
 
@@ -44,6 +109,10 @@ class DowPPanel(QWidget):
         self.timeline_toggle = QCheckBox("🎬 Importar a timeline")
         self.timeline_toggle.stateChanged.connect(self.toggle_timeline)
         layout.addWidget(self.timeline_toggle)
+
+        self.btn_import_video = QPushButton("📁 Importar Video Manualmente")
+        self.btn_import_video.clicked.connect(self.import_video_manually)
+        layout.addWidget(self.btn_import_video)
 
         self.btn_settings = QPushButton("⚙️ Configurar ruta DowP")
         self.btn_settings.clicked.connect(self.set_dowp_path)
@@ -136,6 +205,14 @@ class DowPPanel(QWidget):
         self.import_to_timeline = (state == 2)
         print(f"🎬 Importar a timeline: {self.import_to_timeline}")
 
+    def import_video_manually(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Seleccionar archivo de video", "", "Video Files (*.mp4 *.mov *.mkv)")
+        if file_path:
+            print(f"📁 Video seleccionado manualmente: {file_path}")
+            # Usamos la misma lógica de importación, empaquetando la ruta en el formato esperado
+            file_pkg = {"video": file_path}
+            self.import_file(file_pkg)
+
     # -------------------------------
     # Socket
     # -------------------------------
@@ -185,30 +262,12 @@ class DowPPanel(QWidget):
             return
 
         if self.import_to_timeline:
-            timeline = self.project.GetCurrentTimeline()
-            if not timeline:
-                timeline = self.project.CreateTimeline("DowP Timeline", [])
-                print("🎬 Timeline 'DowP Timeline' creada")
-
-            tc = timeline.GetCurrentTimecode()
-            fps = float(self.project.GetSetting("timelineFrameRate"))
-            print(f"🎯 Playhead actual en TC: {tc} (fps={fps})")
-
-            for clip in clips:
-                props = clip.GetClipProperty()
-                has_video = props.get("VideoCodec") not in ("", None)
-                has_audio = props.get("AudioCodec") not in ("", None)
-                print(f"➡️ Clip '{props.get('File Name')}', video={has_video}, audio={has_audio}")
-
-                if has_video:
-                    v_index = self.find_free_track(timeline, "video", tc, clip, fps)
-                    timeline.InsertClips([clip], tc, "video", v_index)
-                    print(f"✅ Insertado en pista de video V{v_index}")
-
-                if has_audio:
-                    a_index = self.find_free_track(timeline, "audio", tc, clip, fps)
-                    timeline.InsertClips([clip], tc, "audio", a_index)
-                    print(f"✅ Insertado en pista de audio A{a_index}")
+            # Simplificamos la lógica para usar AppendToTimeline, que es más robusto.
+            if not self.media_pool.AppendToTimeline(clips):
+                self.set_status("Error al añadir a timeline", "red")
+                print("❌ Error al usar AppendToTimeline.")
+            else:
+                print("✅ Clips añadidos a la timeline.")
 
         self.set_status("¡Importado con éxito!", "green")
 
