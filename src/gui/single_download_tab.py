@@ -1,5 +1,3 @@
-from flask import Flask, jsonify, request
-from flask_socketio import SocketIO
 import threading
 import webbrowser
 from tkinter import messagebox
@@ -26,8 +24,9 @@ from datetime import datetime, timedelta
 # Importar nuestros otros módulos
 from src.core.downloader import get_video_info, download_media, apply_site_specific_rules
 from src.core.processor import FFmpegProcessor, CODEC_PROFILES
-from src.core.exceptions import UserCancelledError, LocalRecodeFailedError, PlaylistDownloadError # <-- MODIFICAR
+from src.core.exceptions import UserCancelledError, LocalRecodeFailedError, PlaylistDownloadError
 from src.core.processor import clean_and_convert_vtt_to_srt, slice_subtitle
+from src.core.resolve_integration import ResolveIntegration # ✅ INTEGRACIÓN RESOLVE
 from .dialogs import ConflictDialog, LoadingWindow, CompromiseDialog, SimpleMessageDialog, SavePresetDialog, PlaylistErrorDialog, Tooltip
 from src.core.constants import (
     VIDEO_EXTENSIONS, AUDIO_EXTENSIONS, SINGLE_STREAM_AUDIO_CONTAINERS,
@@ -944,6 +943,18 @@ class SingleDownloadTab(ctk.CTkFrame):
         )
         self.download_button.pack(side="left", padx=(5, 10))
 
+        # --- BOTÓN IMPORTAR A DAVINCI ---
+        self.import_resolve_checkbox = ctk.CTkCheckBox(
+            download_frame, 
+            text="Importar a DaVinci",
+            onvalue=True, offvalue=False
+        )
+        self.import_resolve_checkbox.pack(side="left", padx=(0, 10))
+        
+        # Tooltip para el checkbox
+        resolve_tooltip_text = "Si se activa, el archivo descargado se enviará automáticamente a la Media Pool de DaVinci Resolve.\nAsegúrate de tener Resolve abierto."
+        Tooltip(self.import_resolve_checkbox, resolve_tooltip_text, delay_ms=1000)
+
         # 3. FINALMENTE: Empaquetar el panel central (info_frame)
         # Esto le dice a la app: "Usa TODO el espacio que sobre para el panel de en medio"
         # Asegúrate de haber guardado 'self.info_frame_ref' al inicio de la función como te indiqué antes.
@@ -1848,6 +1859,10 @@ class SingleDownloadTab(ctk.CTkFrame):
             )
 
             self.app.after(0, self.on_process_finished, True, "Proceso local completado.", final_output_path)
+            
+            # --- IMPORTACIÓN A DAVINCI ---
+            if self.import_resolve_checkbox.get():
+                self.app.after(0, self._import_to_resolve_safe, final_output_path)
 
         except (UserCancelledError, Exception) as e:
             raise LocalRecodeFailedError(str(e))
@@ -1859,6 +1874,44 @@ class SingleDownloadTab(ctk.CTkFrame):
                 except OSError as err:
                     print(f"ADVERTENCIA: No se pudo eliminar el archivo de recorte temporal: {err}")
         
+    def _import_to_resolve_safe(self, file_path):
+        """
+        Maneja la importación a DaVinci Resolve con manejo de errores robusto y feedback.
+        Se ejecuta en un hilo separado para no bloquear la UI.
+        """
+        def run_import():
+            try:
+                if not os.path.exists(file_path):
+                    print(f"ERROR: Archivo no encontrado para importar: {file_path}")
+                    return
+
+                print(f"INFO: Intentando importar a Resolve: {file_path}")
+                resolve = ResolveIntegration()
+                
+                # Intentar importar
+                success = resolve.import_files([file_path], target_bin_name="DowP Single Downloads")
+                
+                if success:
+                    print(f"✅ ÉXITO: {os.path.basename(file_path)} importado a DaVinci Resolve.")
+                    self.app.after(0, lambda: messagebox.showinfo("DaVinci Resolve", f"Archivo importado correctamente:\n{os.path.basename(file_path)}"))
+                else:
+                    print(f"❌ FALLO: No se pudo importar {os.path.basename(file_path)}.")
+                    self.app.after(0, lambda: messagebox.showwarning(
+                        "Error de Importación", 
+                        "No se pudo importar a DaVinci Resolve.\n\n"
+                        "Posibles causas:\n"
+                        "1. DaVinci Resolve no está abierto.\n"
+                        "2. No hay un proyecto abierto.\n"
+                        "3. La API de scripting no está accesible."
+                    ))
+
+            except Exception as e:
+                print(f"❌ ERROR CRÍTICO al importar a Resolve: {e}")
+                self.app.after(0, lambda: messagebox.showerror("Error DaVinci Resolve", f"Ocurrió un error inesperado al importar:\n{e}"))
+
+        # Ejecutar en hilo daemon para no congelar la UI
+        threading.Thread(target=run_import, daemon=True).start()
+
     def _on_save_in_same_folder_change(self):
         """
         Actualiza el estado de la carpeta de salida según la casilla
