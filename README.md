@@ -15,7 +15,7 @@ Para que este script funcione, el entorno de ejecución debe cumplir con los sig
 
 ## 🚀 Instalación y Uso
 
-1.  **Instala los Requisitos Previos**: Asegúrate de haber instalado todo lo mencionado arriba. **Es crucial reiniciar el ordenador** después de instalar el C++ Redistributable.
+1.  **Instala los Requisitos Previos**: Asegúrate de haber instalado todo lo mencionado arriba.
 
 2.  **Clona este repositorio**:
     ```bash
