@@ -59,19 +59,40 @@ class ResolveIntegration:
         self.setup_done = True
         return True
 
+    def _is_resolve_running(self):
+        """Verifica si el proceso de DaVinci Resolve está en ejecución."""
+        try:
+            # Usar tasklist para verificar si Resolve.exe está corriendo
+            import subprocess
+            output = subprocess.check_output('tasklist /FI "IMAGENAME eq Resolve.exe"', shell=True).decode()
+            if "Resolve.exe" in output:
+                return True
+            return False
+        except Exception:
+            # Si falla el chequeo, asumimos que podría estar corriendo y dejamos que connect() lo intente
+            return True
+
     def connect(self):
         """Intenta conectar con la instancia de DaVinci Resolve."""
+        if not self._is_resolve_running():
+             print("⚠️ [ResolveIntegration] Proceso 'Resolve.exe' no detectado en el sistema.")
+             return False
+
         if not self._setup_environment():
             return False
 
         try:
+            print("INFO: [ResolveIntegration] Importando módulo DaVinciResolveScript...")
             import DaVinciResolveScript as bmd
+            print("INFO: [ResolveIntegration] Buscando instancia de Resolve...")
             self.resolve = bmd.scriptapp("Resolve")
+            
             if self.resolve:
                 print("✅ [ResolveIntegration] Conectado a DaVinci Resolve.")
                 return True
             else:
-                print("⚠️ [ResolveIntegration] No se pudo conectar a DaVinci Resolve (¿está abierto?).")
+                print("⚠️ [ResolveIntegration] No se pudo conectar a DaVinci Resolve.")
+                print("   -> Posibles causas: Versión Free (limitada), Resolve no iniciado, o API deshabilitada.")
                 return False
         except ImportError:
             print("❌ [ResolveIntegration] No se pudo importar 'DaVinciResolveScript'.")
