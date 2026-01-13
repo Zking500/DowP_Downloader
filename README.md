@@ -8,8 +8,6 @@ Para que este script funcione, el entorno de ejecución debe cumplir con los sig
 
 1.  **DaVinci Resolve 18 o superior** instalado.
 2.  **Python 3.10 (64-bit)**. Versiones más recientes (3.11+) o más antiguas no son compatibles con las librerías de scripting nativas de Resolve y provocarán errores de sistema silenciosos.
-3.  **Microsoft Visual C++ Redistributable (x64)**. Es una dependencia crítica para las librerías de DaVinci Resolve. Sin esto, el script fallará sin mostrar ningún error.
-    -   [Descarga directa desde la página oficial de Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 4.  **Habilitar "External scripting" en DaVinci Resolve**:
     -   Ve a `Preferences -> System -> General`.
     -   En la sección `External scripting`, selecciona `Local`.
