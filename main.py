@@ -3,23 +3,29 @@ import sys
 
 # --- Solución Limpia para Cairo en Windows (Python 3.8+) ---
 if sys.platform == "win32":
-    msys_bin_path = "C:\\msys64\\mingw64\\bin"
-    if os.path.isdir(msys_bin_path):
-        # En Python 3.8+ en Windows, esta es la forma recomendada de añadir rutas de búsqueda de DLL.
-        # Es más seguro que modificar el PATH global.
-        if hasattr(os, 'add_dll_directory'):
-            try:
-                os.add_dll_directory(msys_bin_path)
-                print(f"INFO: Añadida la ruta de DLLs: {msys_bin_path}")
-            except Exception as e:
-                print(f"ERROR: No se pudo añadir la ruta de DLLs: {e}")
-        else:
-            # Fallback para versiones antiguas de Python (menos fiable)
-            print("ADVERTENCIA: Usando fallback de modificación de PATH. Se recomienda Python 3.8+.")
-            if msys_bin_path not in os.environ['PATH']:
-                os.environ['PATH'] = msys_bin_path + os.pathsep + os.environ['PATH']
+    # 1. Si estamos congelados (PyInstaller), las DLLs están en sys._MEIPASS
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        try:
+            os.add_dll_directory(sys._MEIPASS)
+            # También añadir al PATH por si acaso (para subprocess o cargas legacy)
+            os.environ['PATH'] = sys._MEIPASS + os.pathsep + os.environ['PATH']
+            print(f"INFO: Añadida ruta interna de DLLs (PyInstaller): {sys._MEIPASS}")
+        except Exception as e:
+            print(f"ERROR: Falló al añadir ruta interna DLLs: {e}")
+            
+    # 2. Si estamos en desarrollo, intentar cargar desde MSYS2
     else:
-        print(f"ADVERTENCIA: El directorio de MSYS2 no se encontró en {msys_bin_path}")
+        msys_bin_path = "C:\\msys64\\mingw64\\bin"
+        if os.path.isdir(msys_bin_path):
+            if hasattr(os, 'add_dll_directory'):
+                try:
+                    os.add_dll_directory(msys_bin_path)
+                    print(f"INFO: Añadida la ruta de DLLs: {msys_bin_path}")
+                except Exception as e:
+                    print(f"ERROR: No se pudo añadir la ruta de DLLs: {e}")
+            else:
+                if msys_bin_path not in os.environ['PATH']:
+                    os.environ['PATH'] = msys_bin_path + os.pathsep + os.environ['PATH']
 # --- Fin de la Solución ---
 
 import subprocess

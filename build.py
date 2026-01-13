@@ -32,8 +32,67 @@ def build():
     if os.path.exists(theme_file):
         args.append(f'--add-data={theme_file};.')
 
-    # Añadir carpeta src para que Python la encuentre (aunque PyInstaller suele detectarla)
+    # Añadir carpeta src para que Python la encuentre
     args.append('--paths=src')
+
+    # --- SOLUCIÓN ERROR CAIRO (0x7e) ---
+    # Detectar y empaquetar DLLs de Cairo y sus dependencias si existen en MSYS2
+    msys_bin = r"C:\msys64\mingw64\bin"
+    if os.path.exists(msys_bin):
+        print(f"Detectado entorno MSYS2 en {msys_bin}. Buscando dependencias de Cairo...")
+        
+        # Lista de DLLs críticas para Cairo (dependencias recursivas comunes)
+        cairo_deps = [
+            "libcairo-2.dll",
+            "libfontconfig-1.dll",
+            "libfreetype-6.dll",
+            "libpixman-1-0.dll",
+            "libpng16-16.dll",
+            "zlib1.dll",
+            "libexpat-1.dll",
+            "libharfbuzz-0.dll",
+            "libbrotlidec.dll",
+            "libbrotlicommon.dll",
+            "libbz2-1.dll",
+            "libintl-8.dll",
+            "libglib-2.0-0.dll",
+            "libgraphite2.dll",
+            "libpcre2-8-0.dll",
+            "libiconv-2.dll",
+            "libgcc_s_seh-1.dll",
+            "libstdc++-6.dll",
+            "libwinpthread-1.dll",
+            "libdatrie-1.dll",
+            "libthai-0.dll",
+            "libsystre-0.dll",
+            "libtre-5.dll",
+            "libfribidi-0.dll",
+            "libpango-1.0-0.dll",
+            "libpangocairo-1.0-0.dll",
+            "libpangoft2-1.0-0.dll",
+            "libpangowin32-1.0-0.dll",
+            "libffi-8.dll",
+            "libxml2-2.dll",
+            "liblzma-5.dll",
+            "libzstd.dll"
+        ]
+        
+        found_deps = 0
+        for dll in cairo_deps:
+            dll_path = os.path.join(msys_bin, dll)
+            if os.path.exists(dll_path):
+                # Añadir como binario a la raíz del ejecutable (.)
+                args.append(f'--add-binary={dll_path};.')
+                found_deps += 1
+                print(f"  [OK] Añadido: {dll}")
+            else:
+                # Algunas son opcionales o pueden tener otro nombre, solo avisar
+                print(f"  [INFO] No encontrado (puede ser opcional): {dll}")
+        
+        if found_deps > 0:
+            print(f"Total DLLs de Cairo añadidas: {found_deps}")
+    else:
+        print("ADVERTENCIA: No se encontró C:\\msys64\\mingw64\\bin. Si tu app usa Cairo/SVG, el .exe podría fallar en otros PCs.")
 
     # Recolectar datos de CustomTkinter (necesario para temas y fuentes)
     import customtkinter
