@@ -11,6 +11,7 @@ from io import BytesIO
 
 from src.core.downloader import download_media, apply_site_specific_rules
 from src.core.exceptions import UserCancelledError
+from src.core.resolve_integration import ResolveIntegration
 
 from src.core.constants import (
     EDITOR_FRIENDLY_CRITERIA, LANGUAGE_ORDER, DEFAULT_PRIORITY,
@@ -404,27 +405,25 @@ class QueueManager:
                     if thumb_path and self.main_app.batch_tab.auto_send_to_it_checkbox.get() == 1:
                         self.main_app.after(0, self.main_app.image_tab._process_imported_files, [thumb_path])
                     
-                # 4. ✅ LÓGICA DE IMPORTACIÓN AUTOMÁTICA A ADOBE (NUEVO)
+                # 4. ✅ LÓGICA DE IMPORTACIÓN AUTOMÁTICA A DAVINCI RESOLVE
                 if self.main_app.batch_tab.auto_import_checkbox.get() and final_path_for_import:
-                    active_target = self.main_app.ACTIVE_TARGET_SID_accessor()
+                    # Determinar el nombre del Bin (Carpeta en Resolve)
+                    target_bin_name = playlist_title or "DowP Downloads"
                     
-                    if active_target:
-                        # Determinar el nombre del Bin (Carpeta en Premiere)
-                        # Usamos el nombre de la playlist (playlist_title) que ya calculamos arriba
-                        target_bin_name = playlist_title 
+                    print(f"INFO: [Playlist Item] Enviando a DaVinci Resolve: {os.path.basename(final_path_for_import)}")
+                    
+                    # Usar ResolveIntegration para importar
+                    resolve = ResolveIntegration()
+                    files_to_import = [final_path_for_import]
+                    if thumb_path:
+                        files_to_import.append(thumb_path)
                         
-                        # Si hay una subcarpeta de lote global, podemos combinarla o usarla
-                        # Por simplicidad, usaremos el título de la playlist para agrupar los ítems
-                        
-                        file_package = {
-                            "video": final_path_for_import.replace('\\', '/'),
-                            "thumbnail": thumb_path.replace('\\', '/') if thumb_path else None,
-                            "subtitle": None, # (Podrías añadir lógica de subtítulos aquí en el futuro)
-                            "targetBin": target_bin_name
-                        }
-                        
-                        print(f"INFO: [Playlist Item] Enviando a Adobe: {os.path.basename(final_path_for_import)}")
-                        self.main_app.socketio.emit('new_file', {'filePackage': file_package}, to=active_target)
+                    # Importar en hilo separado para no bloquear
+                    threading.Thread(
+                        target=resolve.import_files,
+                        args=(files_to_import, target_bin_name),
+                        daemon=True
+                    ).start()
 
             except Exception as e:
                 print(f"ERROR procesando item {i+1} ({video_title}): {e}")
@@ -938,32 +937,31 @@ class QueueManager:
             # (Usamos tu nuevo texto "Import Pr/Ae" para encontrar el checkbox)
             if batch_tab and batch_tab.auto_import_checkbox.get():
                 
-                # 2. Verificar si hay una extensión de Adobe conectada
-                active_target = self.main_app.ACTIVE_TARGET_SID_accessor()
-                if active_target:
-                    
-                    # 3. Determinar la papelera (bin) de destino
+                # 2. Verificar si el usuario quiere importar a DaVinci Resolve
+                if self.main_app.batch_tab.auto_import_checkbox.get():
+                    # 3. Determinar el bin de destino
                     target_bin_name = None
                     if hasattr(self, 'subfolder_path') and self.subfolder_path:
-                        # self.subfolder_path es la RUTA COMPLETA (ej: C:/.../DowP List 01)
-                        # Necesitamos solo el nombre final.
                         try:
                             target_bin_name = os.path.basename(os.path.normpath(self.subfolder_path))
                         except Exception:
                             target_bin_name = None # Fallback
                     
-                    # 4. Armar el paquete de archivos
-                    file_package = {
-                        "video": job.final_filepath.replace('\\', '/'),
-                        "thumbnail": thumbnail_path.replace('\\', '/') if thumbnail_path else None,
-                        "subtitle": None,
-                        "targetBin": target_bin_name # <-- AÑADIDO
-                    }
+                    target_bin_name = target_bin_name or "DowP Downloads"
+
+                    # 4. Importar usando ResolveIntegration
+                    print(f"INFO: [Lote] Enviando a DaVinci Resolve: {os.path.basename(job.final_filepath)}")
                     
-                    print(f"INFO: [Lote] Enviando paquete a CEP: {file_package}")
-                    
-                    # 5. Enviar el paquete por el socket
-                    self.main_app.socketio.emit('new_file', {'filePackage': file_package}, to=active_target)
+                    resolve = ResolveIntegration()
+                    files_to_import = [job.final_filepath]
+                    if thumbnail_path:
+                        files_to_import.append(thumbnail_path)
+                        
+                    threading.Thread(
+                        target=resolve.import_files,
+                        args=(files_to_import, target_bin_name),
+                        daemon=True
+                    ).start()
             
         except Exception as e:
             # Si falló, restaurar el backup si existía
@@ -1042,49 +1040,48 @@ class QueueManager:
             job.final_filepath = final_filepath
             self.ui_callback(job.job_id, "COMPLETED", f"Recodificado: {os.path.basename(final_filepath)}")
 
-            # 9. Lógica de Importación Automática (adaptada para locales)
+            # 9. Lógica de Importación Automática a DaVinci Resolve
             thumbnail_path = None
             if batch_tab and batch_tab.auto_import_checkbox.get():
-                active_target = self.main_app.ACTIVE_TARGET_SID_accessor()
-                if active_target:
+                # Generar una miniatura sobre la marcha para la importación
+                try:
+                    print(f"DEBUG: Generando miniatura para importación automática...")
+                    duration = self._get_job_media_duration(job, final_filepath)
+                    temp_thumb_path = self.main_app.ffmpeg_processor.get_frame_from_video(final_filepath, duration)
                     
-                    # Generar una miniatura sobre la marcha para la importación
-                    try:
-                        print(f"DEBUG: Generando miniatura para importación automática...")
-                        duration = self._get_job_media_duration(job, final_filepath)
-                        temp_thumb_path = self.main_app.ffmpeg_processor.get_frame_from_video(final_filepath, duration)
+                    if temp_thumb_path and os.path.exists(temp_thumb_path):
+                        # Mover la miniatura junto al video recodificado
+                        thumb_dir = os.path.dirname(final_filepath)
+                        thumb_name = os.path.splitext(os.path.basename(final_filepath))[0] + ".jpg"
+                        thumbnail_path = os.path.join(thumb_dir, thumb_name)
                         
-                        if temp_thumb_path and os.path.exists(temp_thumb_path):
-                            # Mover la miniatura junto al video recodificado
-                            thumb_dir = os.path.dirname(final_filepath)
-                            thumb_name = os.path.splitext(os.path.basename(final_filepath))[0] + ".jpg"
-                            thumbnail_path = os.path.join(thumb_dir, thumb_name)
+                        if os.path.exists(thumbnail_path):
+                            os.remove(thumbnail_path) # Sobrescribir si ya existe
                             
-                            if os.path.exists(thumbnail_path):
-                                os.remove(thumbnail_path) # Sobrescribir si ya existe
-                                
-                            shutil.move(temp_thumb_path, thumbnail_path)
-                            print(f"DEBUG: Miniatura generada para importación: {thumbnail_path}")
-                    except Exception as e:
-                        print(f"ADVERTENCIA: No se pudo generar la miniatura para importar: {e}")
+                        shutil.move(temp_thumb_path, thumbnail_path)
+                        print(f"DEBUG: Miniatura generada para importación: {thumbnail_path}")
+                except Exception as e:
+                    print(f"ADVERTENCIA: No se pudo generar la miniatura para importar: {e}")
 
-                    # Determinar el 'bin' de destino
-                    target_bin_name = None
-                    if hasattr(self, 'subfolder_path') and self.subfolder_path:
-                        target_bin_name = os.path.basename(os.path.normpath(self.subfolder_path))
+                # Determinar el 'bin' de destino
+                target_bin_name = None
+                if hasattr(self, 'subfolder_path') and self.subfolder_path:
+                    target_bin_name = os.path.basename(os.path.normpath(self.subfolder_path))
+                
+                target_bin_name = target_bin_name or "DowP Imports"
+                
+                print(f"INFO: [Lote Local] Enviando a DaVinci Resolve: {os.path.basename(final_filepath)}")
+                
+                resolve = ResolveIntegration()
+                files_to_import = [final_filepath]
+                if thumbnail_path:
+                    files_to_import.append(thumbnail_path)
                     
-                    # Armar el paquete de archivos
-                    file_package = {
-                        "video": final_filepath.replace('\\', '/'),
-                        "thumbnail": thumbnail_path.replace('\\', '/') if thumbnail_path else None,
-                        "subtitle": None,
-                        "targetBin": target_bin_name
-                    }
-                    
-                    print(f"INFO: [Lote Local] Enviando paquete a CEP: {file_package}")
-                    
-                    # Enviar el paquete
-                    self.main_app.socketio.emit('new_file', {'filePackage': file_package}, to=active_target)
+                threading.Thread(
+                    target=resolve.import_files,
+                    args=(files_to_import, target_bin_name),
+                    daemon=True
+                ).start()
 
         except Exception as e:
             # Si falla, la excepción será capturada por _worker_thread
@@ -1169,34 +1166,34 @@ class QueueManager:
             batch_tab = self.main_app.batch_tab
             if batch_tab and batch_tab.auto_import_checkbox.get():
                 
-                # 2. Verificar si hay una extensión de Adobe conectada
-                active_target = self.main_app.ACTIVE_TARGET_SID_accessor()
-                if active_target:
-                    
-                    # 3. Determinar el nombre del bin (LÓGICA CORREGIDA)
-                    base_bin_name = None
-                    # Comprobar si hay una subcarpeta de lote (ej: "Mi Lote 01")
-                    if hasattr(self, 'subfolder_path') and self.subfolder_path:
-                        base_bin_name = os.path.basename(os.path.normpath(self.subfolder_path))
+                # 2. Determinar el bin de destino
+                target_bin_name = None
+                if hasattr(self, 'subfolder_path') and self.subfolder_path:
+                    try:
+                        target_bin_name = os.path.basename(os.path.normpath(self.subfolder_path))
+                    except Exception:
+                        target_bin_name = None
 
-                    target_bin_name = "Thumbnails" # Nombre por defecto
-                    
-                    # Si había una carpeta de lote, crear un nombre combinado
-                    if base_bin_name:
-                        target_bin_name = f"{base_bin_name} - Thumbnails"
-                    
-                    # 4. Armar el paquete (solo contiene la miniatura)
-                    file_package = {
-                        "video": None, # Importante: video es null
-                        "thumbnail": final_path.replace('\\', '/'), # Ruta de la imagen
-                        "subtitle": None,
-                        "targetBin": target_bin_name # ej: "Thumbnails" o "Mi Lote 01 - Thumbnails"
-                    }
-                    
-                    print(f"INFO: [Lote Miniaturas] Enviando paquete a CEP: {file_package}")
-                    
-                    # 5. Enviar el paquete
-                    self.main_app.socketio.emit('new_file', {'filePackage': file_package}, to=active_target)
+                target_bin_name = target_bin_name or "DowP Downloads"
+                
+                # Si había una carpeta de lote, crear un nombre combinado
+                if target_bin_name != "DowP Downloads":
+                    target_bin_name = f"{target_bin_name} - Thumbnails"
+                else:
+                    target_bin_name = "Thumbnails"
+
+                # 3. Importar usando ResolveIntegration
+                print(f"INFO: [Lote Miniaturas] Enviando a DaVinci Resolve: {os.path.basename(final_path)}")
+                
+                resolve = ResolveIntegration()
+                # Solo la miniatura
+                files_to_import = [final_path] 
+                
+                threading.Thread(
+                    target=resolve.import_files,
+                    args=(files_to_import, target_bin_name),
+                    daemon=True
+                ).start()
             
         except Exception as e:
             # Restaurar backup si falló

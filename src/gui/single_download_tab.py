@@ -1546,12 +1546,11 @@ class SingleDownloadTab(ctk.CTkFrame):
             threading.Thread(target=self._process_local_file_info, args=(filepath,), daemon=True).start()
 
     # ==========================================
-    # ✅ NUEVA FUNCIÓN: API Pública para importar
+    # API Pública para importar (Conservado para futura integración)
     # ==========================================
     def import_local_file_from_path(self, filepath):
         """
         Importa un archivo local directamente sin abrir diálogo.
-        Usado por la integración con Adobe.
         """
         if not os.path.exists(filepath):
             return

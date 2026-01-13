@@ -1,0 +1,10 @@
+customtkinter
+Pillow
+requests
+yt-dlp
+gevent
+py7zr
+rembg
+tkinterdnd2
+packaging
+pillow-avif-plugin

@@ -29,7 +29,7 @@ def check_and_install_python_dependencies(progress_callback):
         import PIL
         import requests
         import yt_dlp
-        import flask_socketio
+        # flask_socketio eliminado
         import gevent
         import py7zr 
         import rembg

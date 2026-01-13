@@ -623,7 +623,7 @@ class BatchDownloadTab(ctk.CTkFrame):
             hover_color="#DC3545"        
         )
         self.auto_import_checkbox.grid(row=0, column=5, padx=5, pady=5, sticky="w")
-        import_tooltip_text = "Habilita la importación automática de los archivos descargados a Premiere Pro y After Effects."
+        import_tooltip_text = "Habilita la importación automática de los archivos descargados a DaVinci Resolve."
         Tooltip(self.auto_import_checkbox, import_tooltip_text, delay_ms=1000)
         
         self.start_queue_button = ctk.CTkButton(

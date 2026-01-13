@@ -15,7 +15,7 @@
     "CTkButton": {
         "fg_color": ["#C82333", "#C82333"],
         "hover_color": ["#DC3545", "#DC3545"],
-        "border_color": ["#C82333", "#C82333"],
+        "border_color": ["#CCCCCC", "#CCCCCC"],
         "text_color": ["#FFFFFF", "#FFFFFF"],
         "text_color_disabled": ["gray74", "gray60"],
         "corner_radius": 6,
@@ -24,12 +24,12 @@
     "CTkCheckBox": {
         "fg_color": ["#C82333", "#C82333"],
         "hover_color": ["#DC3545", "#DC3545"],
-        "border_color": ["#C82333", "#C82333"],
+        "border_color": ["#CCCCCC", "#CCCCCC"],
         "checkmark_color": ["#FFFFFF", "#FFFFFF"],
         "text_color": ["gray10", "gray90"],
         "text_color_disabled": ["gray60", "gray45"],
         "corner_radius": 6,
-        "border_width": 0
+        "border_width": 2
     },
     "CTkEntry": {
         "fg_color": ["gray90", "#2B2B2B"],

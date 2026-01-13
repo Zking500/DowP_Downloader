@@ -1,5 +1,3 @@
-from flask import Flask, jsonify, request
-from flask_socketio import SocketIO
 import threading
 import webbrowser
 from tkinter import messagebox
@@ -70,117 +68,6 @@ def resource_path(relative_path):
 
 from main import PROJECT_ROOT, BIN_DIR
 
-flask_app = Flask(__name__)
-socketio = SocketIO(flask_app, cors_allowed_origins='*')
-main_app_instance = None
-
-LATEST_FILE_PATH = None
-LATEST_FILE_LOCK = threading.Lock()
-ACTIVE_TARGET_SID = None  
-CLIENTS = {}
-AUTO_LINK_DONE = False
-
-@socketio.on('connect')
-def handle_connect():
-    """Se ejecuta cuando un panel de extensión se conecta."""
-    print(f"INFO: Nuevo cliente conectado con SID: {request.sid}")
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Se ejecuta cuando un panel de extensión se desconecta."""
-    global ACTIVE_TARGET_SID
-    if request.sid in CLIENTS:
-        print(f"INFO: Cliente '{CLIENTS[request.sid]}' (SID: {request.sid}) se ha desconectado.")
-        if request.sid == ACTIVE_TARGET_SID:
-            ACTIVE_TARGET_SID = None
-            print("INFO: El objetivo activo se ha desconectado. Ningún objetivo está enlazado.")
-            socketio.emit('active_target_update', {'activeTarget': None})
-        del CLIENTS[request.sid]
-
-@socketio.on('register')
-def handle_register(data):
-    """
-    Cuando un cliente se registra, comprobamos si es el que lanzó la app
-    para enlazarlo automáticamente.
-    
-    CORREGIDO: Ahora valida si el cliente ya está registrado para evitar duplicados.
-    """
-    global ACTIVE_TARGET_SID, AUTO_LINK_DONE
-    app_id = data.get('appIdentifier')
-    
-    if app_id:
-        # ✅ NUEVA VALIDACIÓN: Solo registra si es la primera vez
-        if request.sid not in CLIENTS:
-            CLIENTS[request.sid] = app_id
-            print(f"INFO: Cliente SID {request.sid} registrado como '{app_id}'.")
-            
-            # Solo intenta auto-enlace si es la primera vez
-            if main_app_instance and not AUTO_LINK_DONE and app_id == main_app_instance.launch_target:
-                ACTIVE_TARGET_SID = request.sid
-                AUTO_LINK_DONE = True 
-                print(f"INFO: Auto-enlace exitoso con '{app_id}' (SID: {request.sid}).")
-                socketio.emit('active_target_update', {'activeTarget': CLIENTS[ACTIVE_TARGET_SID]})
-            else:
-                active_app = CLIENTS.get(ACTIVE_TARGET_SID)
-                socketio.emit('active_target_update', {'activeTarget': active_app}, to=request.sid)
-        else:
-            # ✅ OPCIONAL: Si ya estaba registrado, solo envía el estado actual
-            # Sin imprimir nada (evita spam en logs)
-            active_app = CLIENTS.get(ACTIVE_TARGET_SID)
-            socketio.emit('active_target_update', {'activeTarget': active_app}, to=request.sid)
-
-@socketio.on('get_active_target')
-def handle_get_active_target():
-    """
-    Un cliente pregunta quién es el objetivo activo.
-    (Usado para la actualización periódica del estado en el panel).
-    """
-    active_app = CLIENTS.get(ACTIVE_TARGET_SID)
-    socketio.emit('active_target_update', {'activeTarget': active_app}, to=request.sid)
-
-@socketio.on('set_active_target')
-def handle_set_active_target(data):
-    """Un cliente solicita ser el nuevo objetivo activo."""
-    global ACTIVE_TARGET_SID
-    target_app_id = data.get('targetApp')
-    sid_to_set = None
-    for sid, app_id in CLIENTS.items():
-        if app_id == target_app_id:
-            sid_to_set = sid
-            break
-    if sid_to_set:
-        ACTIVE_TARGET_SID = sid_to_set
-        print(f"INFO: Nuevo objetivo activo establecido: '{CLIENTS[ACTIVE_TARGET_SID]}' (SID: {ACTIVE_TARGET_SID})")
-        socketio.emit('active_target_update', {'activeTarget': CLIENTS[ACTIVE_TARGET_SID]})
-
-@socketio.on('clear_active_target')
-def handle_clear_active_target():
-    """Un cliente solicita desvincularse sin desconectarse."""
-    global ACTIVE_TARGET_SID
-
-    if request.sid == ACTIVE_TARGET_SID:
-        print(f"INFO: El objetivo activo '{CLIENTS.get(request.sid, 'desconocido')}' (SID: {request.sid}) se ha desvinculado.")
-
-        ACTIVE_TARGET_SID = None
-
-        socketio.emit('active_target_update', {'activeTarget': None})
-
-# ==========================================
-# ✅ NUEVO: Escuchar archivos desde el editor
-# ==========================================
-@socketio.on('push_files')
-def handle_push_files(data):
-    """Recibe una lista de archivos desde el editor y los procesa."""
-    files = data.get('files', [])
-    if files and main_app_instance:
-        print(f"INFO: Recibidos {len(files)} archivos desde el editor.")
-        # Usamos .after para ejecutar la lógica en el hilo principal de la UI
-        main_app_instance.after(0, main_app_instance.handle_editor_files, files)
-
-def run_flask_app():
-    """Función que corre el servidor. Usa gevent para WebSockets."""
-    print("INFO: Iniciando servidor de integración en el puerto 7788 con WebSockets.")
-    socketio.run(flask_app, host='0.0.0.0', port=7788, log_output=False)
 
 if getattr(sys, 'frozen', False):
     APP_BASE_PATH = os.path.dirname(sys.executable)
@@ -376,7 +263,31 @@ class MainWindow(TkBase):
         # Aplicar estilos de CustomTkinter manualmente
         if TKDND_AVAILABLE:
             ctk.set_appearance_mode("Dark")
-            ctk.set_default_color_theme("c:\\Users\\simel\\Documents\\GitHub\\DowP_Downloader\\red_theme.json")
+            
+            # Obtener ruta absoluta del tema (compatible con PyInstaller y Dev)
+            if getattr(sys, 'frozen', False):
+                # Si es un ejecutable (PyInstaller)
+                current_dir = os.path.dirname(sys.executable)
+                # Si usamos --onefile, los datos adjuntos pueden estar en _MEIPASS
+                if hasattr(sys, '_MEIPASS'):
+                    theme_path = os.path.join(sys._MEIPASS, "red_theme.json")
+                else:
+                    theme_path = os.path.join(current_dir, "red_theme.json")
+            else:
+                # Entorno de desarrollo
+                theme_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "red_theme.json")
+            
+            # Fallback si no se encuentra en la ruta calculada (intentar en directorio actual)
+            if not os.path.exists(theme_path):
+                theme_path = "red_theme.json"
+
+            try:
+                ctk.set_default_color_theme(theme_path)
+            except Exception as e:
+                print(f"ERROR: No se pudo cargar el tema desde {theme_path}: {e}")
+                # Fallback a tema por defecto
+                ctk.set_default_color_theme("blue")
+                
             self.configure(bg="#2B2B2B")
 
         self.VIDEO_EXTENSIONS = VIDEO_EXTENSIONS
@@ -389,13 +300,11 @@ class MainWindow(TkBase):
         self.EDITOR_FRIENDLY_CRITERIA = EDITOR_FRIENDLY_CRITERIA
         self.COMPATIBILITY_RULES = COMPATIBILITY_RULES
 
-        global main_app_instance, ACTIVE_TARGET_SID, LATEST_FILE_LOCK, socketio
+        global main_app_instance
         main_app_instance = self
 
         # --- Adjuntar globales para pasarlos a las pestañas ---
-        self.ACTIVE_TARGET_SID_accessor = lambda: ACTIVE_TARGET_SID
-        self.LATEST_FILE_LOCK = LATEST_FILE_LOCK
-        self.socketio = socketio
+        # (Variables de SocketIO eliminadas)
 
         # --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
         # 2. Determina la ruta base (PARA LOS BINARIOS)
@@ -444,9 +353,6 @@ class MainWindow(TkBase):
         self.current_aspect_ratio = None
         
         ctk.set_appearance_mode("Dark")
-        server_thread = threading.Thread(target=run_flask_app, daemon=True)
-        server_thread.start()
-        print("INFO: Servidor de integración iniciado en el puerto 7788.")
         
         self.ui_request_event = threading.Event()
         self.ui_request_data = {}
@@ -1856,63 +1762,3 @@ class MainWindow(TkBase):
 
         # 4. Detección final de códecs (si no se ha hecho)
         self.ffmpeg_processor.run_detection_async(self.on_ffmpeg_detection_complete)
-
-    # ==========================================
-    # ✅ NUEVA FUNCIÓN: Router de Archivos del Editor
-    # ==========================================
-    def handle_editor_files(self, file_paths):
-        """
-        Clasifica y envía los archivos recibidos a la pestaña correcta.
-        - Si es un video o audio, va a la pestaña "Descarga Individual".
-        - Si es una imagen, va a la pestaña "Herramientas de Imagen".
-        """
-        if not file_paths:
-            return
-
-        # Separar archivos por tipo
-        media_files = []
-        image_files = []
-
-        for path in file_paths:
-            # Asegurarse de que la ruta es absoluta y limpia
-            clean_path = os.path.abspath(os.path.normpath(path))
-            
-            # Obtener extensión
-            _, ext = os.path.splitext(clean_path)
-            
-            # Clasificar
-            if ext.lower().lstrip('.') in VIDEO_EXTENSIONS or ext.lower().lstrip('.') in AUDIO_EXTENSIONS:
-                media_files.append(clean_path)
-            elif ext.lower() in {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff'}:
-                image_files.append(clean_path)
-            else:
-                print(f"ADVERTENCIA: Archivo '{os.path.basename(clean_path)}' con formato no soportado, será ignorado.")
-
-        # Procesar archivos de medios
-        if media_files:
-            # Cambiar a la pestaña de descarga individual si no está activa
-            if self.tab_view.get() != "Proceso Único":
-                self.tab_view.set("Proceso Único")
-                self.update() # Forzar actualización de la UI
-            
-            # Limpiar la entrada actual y añadir la nueva URL
-            self.single_tab.url_entry.delete(0, 'end')
-            # Solo tomamos el primer archivo de medios, ya que la pestaña individual solo maneja uno
-            self.single_tab.url_entry.insert(0, media_files[0]) 
-            self.single_tab.fetch_video_info()
-            print(f"INFO: Archivo de medios '{os.path.basename(media_files[0])}' cargado en 'Proceso Único'.")
-
-        # Procesar archivos de imagen
-        if image_files:
-            # Cambiar a la pestaña de herramientas de imagen
-            if self.tab_view.get() != "Herramientas de Imagen":
-                self.tab_view.set("Herramientas de Imagen")
-                self.update()
-            
-            # Cargar las imágenes en la pestaña de herramientas
-            self.image_tab.load_images_from_paths(image_files)
-            print(f"INFO: {len(image_files)} imágenes cargadas en 'Herramientas de Imagen'.")
-
-        # Traer la ventana al frente
-        self.lift()
-        self.focus_force()

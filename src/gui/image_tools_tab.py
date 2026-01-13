@@ -26,6 +26,7 @@ from src.core.exceptions import UserCancelledError
 from .dialogs import Tooltip, MultiPageDialog, ManualDownloadDialog
 from src.core.image_converter import ImageConverter
 from src.core.image_processor import ImageProcessor
+from src.core.resolve_integration import ResolveIntegration
 from src.core.setup import get_remote_file_size, format_size
 from src.core.constants import (
     REMBG_MODEL_FAMILIES, REALESRGAN_MODELS, WAIFU2X_MODELS, REALSR_MODELS, SRMD_MODELS,
@@ -1497,12 +1498,12 @@ class ImageToolsTab(ctk.CTkFrame):
         # (Se omite Auto-descarga)
         
         self.auto_import_checkbox = ctk.CTkCheckBox(
-            line2_frame, text="Import Adobe", 
+            line2_frame, text="Import DaVinci", 
             command=self.save_settings,
-            text_color="#FFC792", fg_color="#C17B42", hover_color="#9A6336"
+            text_color="#FFFFFF", fg_color="#C82333", hover_color="#DC3545"
         )
         self.auto_import_checkbox.grid(row=0, column=4, padx=5, pady=5, sticky="w")
-        Tooltip(self.auto_import_checkbox, "Importa automáticamente los archivos procesados a Premiere o After Effects.", delay_ms=1000)
+        Tooltip(self.auto_import_checkbox, "Importa automáticamente los archivos procesados a DaVinci Resolve.", delay_ms=1000)
         
         self.start_process_button = ctk.CTkButton(
             line2_frame, text="Iniciar Proceso", 
@@ -3858,10 +3859,10 @@ class ImageToolsTab(ctk.CTkFrame):
             self.conversion_complete_event.set()
             print("DEBUG: ✅ Todas las conversiones completadas. Señal enviada.")
             
-            # Importar a Adobe
+            # Importar a DaVinci Resolve
             if not cancel_event.is_set() and self.auto_import_checkbox.get():
-                print(f"DEBUG: Proceso finalizado. Programando importación a Adobe.")
-                self.app.after(0, self._import_to_adobe, successfully_processed_paths)
+                print(f"DEBUG: Proceso finalizado. Programando importación a DaVinci Resolve.")
+                self.app.after(0, self._import_to_resolve, successfully_processed_paths)
 
             # 🔧 NUEVO: Mostrar resumen mejorado
             if not cancel_event.is_set():
@@ -4220,84 +4221,40 @@ class ImageToolsTab(ctk.CTkFrame):
                 return new_path
             counter += 1
 
-    def _import_to_adobe(self, processed_filepaths: list):
+    def _import_to_resolve(self, processed_filepaths: list):
         """
-        Importa los archivos procesados a Adobe (Premiere/After Effects).
-        CORREGIDO: Ahora recibe una lista de archivos para no re-escanear.
+        Importa los archivos procesados a DaVinci Resolve.
         """
         try:
-            # 1. Obtener el objetivo activo
-            active_target_sid = self.app.ACTIVE_TARGET_SID_accessor()
-            
-            if not active_target_sid:
-                print("INFO: No hay aplicación Adobe vinculada para importación automática")
-                return
-            
-            # 2. Determinar la papelera (bin) de destino
-            target_bin_name = None
+            # 1. Determinar la papelera (bin) de destino
+            target_bin_name = "DowP Imports"
             if self.create_subfolder_checkbox.get():
                 # Usar el nombre de la subcarpeta como nombre del bin
-                target_bin_name = self.subfolder_name_entry.get() or "DowP Imágenes"
+                target_bin_name = self.subfolder_name_entry.get() or "DowP Imports"
 
-            # 3. Lista de formatos compatibles (excluyendo WEBP)
-            compatible_formats = {".png", ".jpg", ".jpeg", ".pdf", ".tiff", ".tif", ".ico", ".bmp"}
-            
-            files_to_import = []
-
-            # 4. Iterar sobre la LISTA RECIBIDA (esta es la corrección)
-            print(f"DEBUG: Preparando {len(processed_filepaths)} archivos para importar.")
-            
-            for filepath in processed_filepaths:
-                file_ext = os.path.splitext(filepath)[1].lower()
-                
-                # Validar que el archivo exista y sea compatible
-                if os.path.isfile(filepath) and file_ext in compatible_formats:
-                    files_to_import.append(filepath.replace('\\', '/'))
-                elif file_ext not in compatible_formats:
-                    # Omitir silenciosamente formatos no compatibles (como .webp)
-                    print(f"INFO: [ImgTools] Omitiendo importación de {os.path.basename(filepath)} (no compatible).")
+            # 2. Filtrar archivos existentes
+            files_to_import = [f for f in processed_filepaths if os.path.exists(f)]
             
             if not files_to_import:
-                print("ADVERTENCIA: No se encontraron archivos compatibles en la lista procesada para importar.")
+                print("ADVERTENCIA: No hay archivos válidos para importar a DaVinci Resolve.")
                 return
+
+            # 3. Importar usando la integración
+            print(f"INFO: [ImgTools] Importando {len(files_to_import)} archivos a DaVinci Resolve (Bin: {target_bin_name})")
             
-            # 5. Verificar que TODOS los archivos sean accesibles
-            print(f"DEBUG: Verificando accesibilidad de {len(files_to_import)} archivos...")
-            verified_files = []
-            for filepath in files_to_import:
-                try:
-                    # Verificar que existe y es accesible
-                    if not os.path.exists(filepath):
-                        print(f"  ❌ {os.path.basename(filepath)} - No existe")
-                        continue
-                    
-                    size = os.path.getsize(filepath)
-                    with open(filepath, 'rb') as f:
-                        f.read(1)  # Leer primer byte
-                    
-                    verified_files.append(filepath)
-                    print(f"  ✅ {os.path.basename(filepath)} ({size} bytes)")
-                except Exception as e:
-                    print(f"  ❌ {os.path.basename(filepath)} - ERROR: {e}")
+            # Ejecutar en un hilo separado para no congelar la UI si Resolve tarda
+            def run_import():
+                resolve = ResolveIntegration()
+                success = resolve.import_files(files_to_import, target_bin_name=target_bin_name)
+                if success:
+                    print("✅ Importación a DaVinci Resolve completada.")
+                else:
+                    print("❌ Falló la importación a DaVinci Resolve.")
             
-            if not verified_files:
-                print("ERROR: Ningún archivo pasó la verificación de accesibilidad")
-                return
-            
-            # 6. Armar el PAQUETE ÚNICO (con archivos verificados)
-            import_package = {
-                "files": verified_files,
-                "targetBin": target_bin_name
-            }
-            
-            # 7. Enviar el paquete en UN SOLO MENSAJE
-            print(f"INFO: [ImgTools] Enviando paquete de lote a CEP: {len(verified_files)} archivos a la papelera '{target_bin_name}'")
-            self.app.socketio.emit('import_files', 
-                                   import_package,
-                                   to=active_target_sid)
+            threading.Thread(target=run_import, daemon=True).start()
         
         except Exception as e:
-            print(f"ERROR: Falló la importación automática a Adobe: {e}")
+            print(f"ERROR: Falló la importación automática a DaVinci Resolve: {e}")
         
     def _toggle_subfolder_name_entry(self):
         """Habilita/deshabilita el entry de nombre de carpeta."""
