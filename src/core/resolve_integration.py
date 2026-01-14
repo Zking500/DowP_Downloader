@@ -83,7 +83,47 @@ class ResolveIntegration:
 
         try:
             print("INFO: [ResolveIntegration] Importando módulo DaVinciResolveScript...")
-            import DaVinciResolveScript as bmd
+            
+            # Intentar importar con timeout y manejo robusto
+            import threading
+            import queue
+            
+            def _import_with_timeout():
+                try:
+                    import DaVinciResolveScript as bmd
+                    return bmd, None
+                except Exception as e:
+                    return None, str(e)
+            
+            # Crear hilo para importar con timeout
+            result_queue = queue.Queue()
+            def _import_worker():
+                bmd, error = _import_with_timeout()
+                result_queue.put((bmd, error))
+            
+            import_thread = threading.Thread(target=_import_worker, daemon=True)
+            import_thread.start()
+            
+            # Esperar máximo 5 segundos para la importación
+            try:
+                bmd, error = result_queue.get(timeout=5)
+            except queue.Empty:
+                print("❌ [ResolveIntegration] TIMEOUT: La importación del módulo tardó demasiado.")
+                print("   -> Posibles causas:")
+                print("      1. DaVinci Resolve no tiene 'External scripting' habilitado")
+                print("      2. DaVinci Resolve está bloqueado o la API no responde")
+                print("      3. Versión Free de DaVinci Resolve (API limitada)")
+                print("   -> SOLUCIÓN: Ve a Preferences -> System -> General -> External scripting -> Local")
+                return False
+            
+            if error:
+                print(f"❌ [ResolveIntegration] Error al importar módulo: {error}")
+                return False
+            
+            if bmd is None:
+                print("❌ [ResolveIntegration] Módulo no disponible.")
+                return False
+            
             print("INFO: [ResolveIntegration] Buscando instancia de Resolve...")
             self.resolve = bmd.scriptapp("Resolve")
             
@@ -94,8 +134,9 @@ class ResolveIntegration:
                 print("⚠️ [ResolveIntegration] No se pudo conectar a DaVinci Resolve.")
                 print("   -> Posibles causas: Versión Free (limitada), Resolve no iniciado, o API deshabilitada.")
                 return False
-        except ImportError:
-            print("❌ [ResolveIntegration] No se pudo importar 'DaVinciResolveScript'.")
+        except Exception as e:
+            print(f"❌ [ResolveIntegration] Error crítico en connect(): {e}")
+            print(f"   -> Traceback: {traceback.format_exc()}")
             return False
         except Exception as e:
             print(f"❌ [ResolveIntegration] Error inesperado al conectar: {e}")
@@ -103,17 +144,37 @@ class ResolveIntegration:
 
     def _refresh_context(self):
         """Actualiza las referencias al proyecto y media pool."""
-        if not self.resolve:
-            if not self.connect():
+        try:
+            if not self.resolve:
+                if not self.connect():
+                    return False
+            
+            # Verificar que Resolve esté respondiendo
+            if not self.resolve:
+                print("❌ [ResolveIntegration] Resolve no está disponible.")
                 return False
-        
-        self.project = self.resolve.GetProjectManager().GetCurrentProject()
-        self.media_pool = self.project.GetMediaPool() if self.project else None
-        
-        if not self.project:
-             print("⚠️ [ResolveIntegration] No hay proyecto abierto en Resolve.")
-             return False
-        return True
+            
+            project_manager = self.resolve.GetProjectManager()
+            if not project_manager:
+                print("❌ [ResolveIntegration] No se pudo obtener ProjectManager.")
+                return False
+            
+            self.project = project_manager.GetCurrentProject()
+            self.media_pool = self.project.GetMediaPool() if self.project else None
+            
+            if not self.project:
+                print("⚠️ [ResolveIntegration] No hay proyecto abierto en Resolve.")
+                return False
+                
+            if not self.media_pool:
+                print("⚠️ [ResolveIntegration] No se pudo obtener MediaPool del proyecto.")
+                return False
+                
+            return True
+            
+        except Exception as e:
+            print(f"❌ [ResolveIntegration] Error en _refresh_context(): {e}")
+            return False
 
     def import_files(self, file_paths, target_bin_name="DowP Imports", import_to_timeline=False):
         """
@@ -125,9 +186,42 @@ class ResolveIntegration:
         :return: True si se importó con éxito, False en caso contrario.
         """
         if not file_paths:
+            print("⚠️ [ResolveIntegration] No se proporcionaron archivos para importar.")
             return False
 
-        if not self._refresh_context():
+        try:
+            # Validar que los archivos existan
+            valid_files = []
+            for file_path in file_paths:
+                if os.path.exists(file_path):
+                    valid_files.append(file_path)
+                else:
+                    print(f"⚠️ [ResolveIntegration] Archivo no encontrado: {file_path}")
+            
+            if not valid_files:
+                print("❌ [ResolveIntegration] Ninguno de los archivos proporcionados existe.")
+                return False
+            
+            # Intentar conectar con timeout adicional
+            print(f"📂 [ResolveIntegration] Intentando importar {len(valid_files)} archivos...")
+            
+            if not self._refresh_context():
+                print("❌ [ResolveIntegration] No se pudo establecer contexto con DaVinci Resolve.")
+                return False
+                
+            # Proceder con la importación de los archivos válidos
+            return self._do_import_files(valid_files, target_bin_name, import_to_timeline)
+            
+        except Exception as e:
+            print(f"❌ [ResolveIntegration] Error crítico en import_files(): {e}")
+            print(f"   -> Traceback: {traceback.format_exc()}")
+            return False
+    
+    def _do_import_files(self, file_paths, target_bin_name="DowP Imports", import_to_timeline=False):
+        """
+        Método interno que realiza la importación real después de validaciones.
+        """
+        if not file_paths:
             return False
 
         print(f"📂 [ResolveIntegration] Importando archivos: {file_paths}")
