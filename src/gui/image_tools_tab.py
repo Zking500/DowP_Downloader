@@ -2469,9 +2469,9 @@ class ImageToolsTab(ctk.CTkFrame):
                 cancellation_event=cancel_event
             )
             
-            # 5. Importar a Adobe si está activado
+            # 5. Importar a DaVinci Resolve si está activado
             if not cancel_event.is_set() and self.auto_import_checkbox.get():
-                self.app.after(500, self._import_to_adobe, [final_video_path])
+                self.app.after(500, self._import_to_resolve, [final_video_path])
 
             # 6. Mostrar resumen
             if not cancel_event.is_set():
@@ -3704,7 +3704,7 @@ class ImageToolsTab(ctk.CTkFrame):
                     # Contamos como 'skipped' para el resumen final
                     skipped += 1
                     
-                    # Añadir a la lista de completados para que funcione "Import Adobe" y "Combinar PDF"
+                    # Añadir a la lista de completados para que funcione "Import Resolve" y "Combinar PDF"
                     successfully_processed_paths.append(existing_output)
                     if options["format"] == "PDF" and options.get("pdf_combine", False):
                         generated_pdfs.append(existing_output)
@@ -3940,7 +3940,7 @@ class ImageToolsTab(ctk.CTkFrame):
     def _wait_for_file_ready(self, filepath, timeout=2.0):
         """
         Espera hasta que un archivo esté completamente escrito y accesible.
-        Crítico para importación inmediata en Adobe Premiere.
+        Crítico para importación inmediata en DaVinci Resolve.
         """
         import time
         start_time = time.time()

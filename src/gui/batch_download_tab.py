@@ -18,6 +18,7 @@ from contextlib import redirect_stdout
 from src.core.exceptions import UserCancelledError 
 from src.core.downloader import get_video_info, apply_site_specific_rules
 from src.core.batch_processor import Job
+from src.core.resolve_integration import ResolveIntegration
 from .dialogs import Tooltip, messagebox, PlaylistSelectionDialog
 
 import requests
@@ -2642,22 +2643,15 @@ class BatchDownloadTab(ctk.CTkFrame):
                 print(f"INFO: Miniatura guardada como JPG (sin transparencia): {file_path}")
 
             
-            # 4. Comprobar si se debe importar
+            # 4. Comprobar si se debe importar a Resolve
             if self.auto_import_checkbox.get():
-                active_target = self.app.ACTIVE_TARGET_SID_accessor()
-                if active_target:
-                    # 5. Armar el paquete (solo miniatura, sin bin de lote)
-                    file_package = {
-                        "video": None,
-                        "thumbnail": file_path.replace('\\', '/'),
-                        "subtitle": None,
-                        "targetBin": None # Importa a la raíz "DowP Imports"
-                    }
-                    
-                    print(f"INFO: [Manual] Enviando miniatura a CEP: {file_package}")
-                    
-                    # 6. Enviar
-                    self.app.socketio.emit('new_file', {'filePackage': file_package}, to=active_target)
+                print(f"INFO: [Manual] Enviando miniatura a DaVinci Resolve: {file_path}")
+                
+                def run_import():
+                    resolve = ResolveIntegration()
+                    resolve.import_files([file_path], target_bin_name="DowP Thumbnails")
+                
+                threading.Thread(target=run_import, daemon=True).start()
 
         except Exception as e:
             print(f"ERROR: No se pudo guardar o importar la miniatura manualmente: {e}")
