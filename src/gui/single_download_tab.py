@@ -1912,6 +1912,49 @@ class SingleDownloadTab(ctk.CTkFrame):
         # Ejecutar en hilo daemon para no congelar la UI
         threading.Thread(target=run_import, daemon=True).start()
 
+    def _import_to_resolve(self, file_paths):
+        """
+        Importa múltiples archivos a DaVinci Resolve.
+        """
+        def run_import():
+            try:
+                if not file_paths:
+                    print("ADVERTENCIA: No hay archivos para importar")
+                    return
+
+                # Filtrar archivos que existen
+                valid_files = [f for f in file_paths if os.path.exists(f)]
+                if not valid_files:
+                    print("ERROR: Ninguno de los archivos existe")
+                    return
+
+                print(f"INFO: Intentando importar archivos a Resolve: {valid_files}")
+                resolve = ResolveIntegration()
+                
+                # Intentar importar todos los archivos
+                success = resolve.import_files(valid_files, target_bin_name="DowP Single Downloads")
+                
+                if success:
+                    print(f"✅ ÉXITO: {len(valid_files)} archivos importados a DaVinci Resolve.")
+                    self.app.after(0, lambda: messagebox.showinfo("DaVinci Resolve", f"Archivos importados correctamente:\n{len(valid_files)} archivos"))
+                else:
+                    print(f"❌ FALLO: No se pudieron importar los archivos.")
+                    self.app.after(0, lambda: messagebox.showwarning(
+                        "Error de Importación", 
+                        "No se pudieron importar los archivos a DaVinci Resolve.\n\n"
+                        "Posibles causas:\n"
+                        "1. DaVinci Resolve no está abierto.\n"
+                        "2. No hay un proyecto abierto.\n"
+                        "3. La API de scripting no está accesible."
+                    ))
+
+            except Exception as e:
+                print(f"❌ ERROR CRÍTICO al importar archivos a Resolve: {e}")
+                self.app.after(0, lambda: messagebox.showerror("Error DaVinci Resolve", f"Ocurrió un error inesperado al importar:\n{e}"))
+        
+        # Ejecutar en hilo daemon para no congelar la UI
+        threading.Thread(target=run_import, daemon=True).start()
+
     def _on_save_in_same_folder_change(self):
         """
         Actualiza el estado de la carpeta de salida según la casilla
@@ -5312,34 +5355,36 @@ class SingleDownloadTab(ctk.CTkFrame):
         """
         Callback UNIFICADO. Usa las listas de extensiones de la clase para una clasificación robusta.
         """
-        if success and final_filepath and self.app.ACTIVE_TARGET_SID_accessor():
-            with self.app.LATEST_FILE_LOCK:
-                file_package = {
-                    "video": None,
-                    "thumbnail": None,
-                    "subtitle": None
-                }
-                file_ext_without_dot = os.path.splitext(final_filepath)[1].lower().lstrip('.')
-                if file_ext_without_dot in VIDEO_EXTENSIONS or file_ext_without_dot in AUDIO_EXTENSIONS or file_ext_without_dot in SINGLE_STREAM_AUDIO_CONTAINERS:
-                    file_package["video"] = final_filepath.replace('\\', '/')
-                elif file_ext_without_dot == 'srt':
-                    file_package["subtitle"] = final_filepath.replace('\\', '/')
-                elif file_ext_without_dot == 'jpg':
-                     file_package["thumbnail"] = final_filepath.replace('\\', '/')
-                if file_package["video"]:
-                    output_dir = os.path.dirname(final_filepath)
-                    base_name = os.path.splitext(os.path.basename(final_filepath))[0]
-                    if base_name.endswith('_recoded'):
-                        base_name = base_name.rsplit('_recoded', 1)[0]
-                    expected_thumb_path = os.path.join(output_dir, f"{base_name}.jpg")
-                    if os.path.exists(expected_thumb_path):
-                        file_package["thumbnail"] = expected_thumb_path.replace('\\', '/')
-                    for item in os.listdir(output_dir):
-                        if item.startswith(base_name) and item.lower().endswith('.srt'):
-                             file_package["subtitle"] = os.path.join(output_dir, item).replace('\\', '/')
-                             break
-                print(f"INFO: Paquete de archivos listo para enviar: {file_package}")
-                self.app.socketio.emit('new_file', {'filePackage': file_package}, to=self.app.ACTIVE_TARGET_SID_accessor())
+        if success and final_filepath:
+            # Preparar lista de archivos para importar a DaVinci Resolve
+            files_to_import = []
+            
+            file_ext_without_dot = os.path.splitext(final_filepath)[1].lower().lstrip('.')
+            if file_ext_without_dot in VIDEO_EXTENSIONS or file_ext_without_dot in AUDIO_EXTENSIONS or file_ext_without_dot in SINGLE_STREAM_AUDIO_CONTAINERS:
+                files_to_import.append(final_filepath)
+            
+            # Buscar archivos relacionados (thumbnails, subtitles)
+            if files_to_import:
+                output_dir = os.path.dirname(final_filepath)
+                base_name = os.path.splitext(os.path.basename(final_filepath))[0]
+                if base_name.endswith('_recoded'):
+                    base_name = base_name.rsplit('_recoded', 1)[0]
+                
+                # Buscar thumbnail
+                expected_thumb_path = os.path.join(output_dir, f"{base_name}.jpg")
+                if os.path.exists(expected_thumb_path):
+                    files_to_import.append(expected_thumb_path)
+                
+                # Buscar subtítulos
+                for item in os.listdir(output_dir):
+                    if item.startswith(base_name) and item.lower().endswith('.srt'):
+                        files_to_import.append(os.path.join(output_dir, item))
+                        break
+                
+                # Importar a DaVinci Resolve si está habilitado
+                if self.import_resolve_checkbox.get() and files_to_import:
+                    print(f"INFO: Importando archivos a DaVinci Resolve: {files_to_import}")
+                    self._import_to_resolve(files_to_import)
         self.last_download_path = final_filepath
         self.progress_bar.stop()
         self.progress_bar.set(1 if success else 0)

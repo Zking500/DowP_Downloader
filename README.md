@@ -27,6 +27,9 @@ Aplicación de escritorio que permite descargar videos de plataformas populares 
 **Para usuarios avanzados o desarrolladores**
 
 1. **Instala Python 3.10** (verifica con: `python --version`)
+   ⚠️ **CRÍTICO**: Durante la instalación, **marca SÍ la casilla "tcl/tk and IDLE"** 
+   - Si ya instalaste Python y falta tkinter: Modifica la instalación marcando tcl/tk
+   - En Windows: Configuración -> Aplicaciones -> Python -> Modificar -> Marcar tcl/tk
 
 2. **Instala las dependencias**:
     ```bash
@@ -37,6 +40,8 @@ Aplicación de escritorio que permite descargar videos de plataformas populares 
     ```bash
     python main.py
     ```
+   
+   � **Error común**: "No module named 'tkinter'" significa que Python se instaló sin tcl/tk. Reinstala marcando esa opción.
 
 ## 📋 Guía Rápida de Uso
 
