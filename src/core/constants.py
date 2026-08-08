@@ -1,11 +1,15 @@
-VIDEO_EXTENSIONS = {'mp4', 'mkv', 'webm', 'mov', 'flv', 'avi', 'gif'}
-AUDIO_EXTENSIONS = {'wav'}
-SINGLE_STREAM_AUDIO_CONTAINERS = {'.mp3', '.wav', '.flac', '.ac3'}
+# Constants configuration for DowP
 
-FORMAT_MUXER_MAP = {
-    ".m4a": "mp4",
-    ".wma": "asf"
-}
+VIDEO_EXTENSIONS = {'webm', 'flv', 'mkv', 'mov', 'mp4', 'avi', 'gif'}
+AUDIO_EXTENSIONS = {'flac', 'mp3', 'ogg', 'wav', 'opus', 'm4a'}
+SINGLE_STREAM_AUDIO_CONTAINERS = {'.wav', '.ac3', '.flac', '.mp3'}
+FAST_MODE_SUPPORTED_DOMAINS = [
+    'youtube.com', 'youtu.be', 'soundcloud.com', 'x.com', 'twitter.com', 
+    'instagram.com', 'tiktok.com', 'reddit.com', 'facebook.com', 'tumblr.com', 
+    'vimeo.com', 'dailymotion.com', 'bandcamp.com', 'twitch.tv', 'smugmug.com', 
+    'flickr.com', 'metacafe.com', 'archive.org'
+]
+FORMAT_MUXER_MAP = {'.m4a': 'mp4', '.wma': 'asf'}
 
 LANG_CODE_MAP = {
     "es": "Español",
@@ -322,178 +326,129 @@ LANG_CODE_MAP = {
 }
 
 LANGUAGE_ORDER = {
-    'es-419': 0,   # Español LATAM
-    'es-es': 1,    # Español España
-    'es': 2,       # Español general
-    'en': 3,       # Inglés
-    'ja': 4,       # Japonés 
-    'fr': 5,       # Francés 
-    'de': 6,       # Alemán 
-    'pt': 7,       # Portugués
-    'it': 8,       # Italiano
-    'zh': 9,       # Chino
-    'ko': 10,      # Coreano
-    'ru': 11,      # Ruso
-    'ar': 12,      # Árabe
-    'hi': 13,      # Hindi
-    'vi': 14,      # Vietnamita
-    'th': 15,      # Tailandés
-    'pl': 16,      # Polaco
-    'id': 17,      # Indonesio
-    'tr': 18,      # Turco
-    'bn': 19,      # Bengalí
-    'ta': 20,      # Tamil
-    'te': 21,      # Telugu
-    'pa': 22,      # Punjabi
-    'mr': 23,      # Marathi
-    'ca': 24,      # Catalán
-    'gl': 25,      # Gallego
-    'eu': 26,      # Euskera
-    'und': 27,     # Indefinido
+    'es-419': 0, 'es-es': 1, 'es': 2, 'en': 3, 'ja': 4, 'fr': 5, 'de': 6, 
+    'pt': 7, 'it': 8, 'zh': 9, 'ko': 10, 'ru': 11, 'ar': 12, 'hi': 13, 
+    'vi': 15, 'pl': 16, 'id': 17, 'tr': 18, 'bn': 19, 'ta': 20, 'te': 21, 
+    'pa': 22, 'mr': 23, 'ca': 24, 'gl': 25, 'eu': 26, 'und': 27
 }
-
-DEFAULT_PRIORITY = 99 
+DEFAULT_PRIORITY = 99
 
 EDITOR_FRIENDLY_CRITERIA = {
-    "compatible_vcodecs": [
-        "h264", "avc1",  # H.264
-        "hevc", "h265",  # H.265
-        "prores",        # Apple ProRes
-        "dnxhd", "dnxhr", # Avid DNxHD/HR
-        "cfhd",          # GoPro CineForm
-        "mpeg2video",    
-        "dvvideo"        # Formato de cámaras MiniDV
-    ],
-    "compatible_acodecs": ["aac", "mp4a", "pcm_s16le", "pcm_s24le", "mp3", "ac3"],
-    "compatible_exts": ["mp4", "mov", "mxf", "mts", "m2ts", "avi"],
+    'compatible_vcodecs': ['h264', 'avc1', 'hevc', 'h265', 'prores', 'dnxhd', 'dnxhr', 'cfhd', 'mpeg2video', 'dvvideo'],
+    'compatible_acodecs': ['aac', 'mp4a', 'pcm_s16le', 'pcm_s24le', 'mp3', 'ac3'],
+    'compatible_exts': ['mp4', 'mov', 'mxf', 'mts', 'm2ts', 'avi']
 }
 
 COMPATIBILITY_RULES = {
-    ".gif": {
-        "video": ["gif"],  
-        "audio": []       
-    },
-    ".mov": {
-        "video": ["prores_aw", "prores_ks", "dnxhd", "cfhd", "qtrle", "hap", "h264_videotoolbox", "libx264"],
-        "audio": ["pcm_s16le", "pcm_s24le", "alac"]
-    },
-    ".mp4": {
-        "video": ["libx264", "libx265", "h264_nvenc", "hevc_nvenc", "h264_amf", "hevc_amf", "av1_nvenc", "av1_amf", "h264_qsv", "hevc_qsv", "av1_qsv", "vp9_qsv"],
-        "audio": ["aac", "mp3", "ac3", "opus"]
-    },
-    ".mkv": {
-        "video": ["libx264", "libx265", "libvpx", "libvpx-vp9", "libaom-av1", "h264_nvenc", "hevc_nvenc", "av1_nvenc"],
-        "audio": ["aac", "mp3", "opus", "flac", "libvorbis", "ac3", "pcm_s16le"]
-    },
-    ".webm": { "video": ["libvpx", "libvpx-vp9", "libaom-av1"], "audio": ["libopus", "libvorbis"] },
-    ".ogg": { "video": [], "audio": ["libvorbis", "libopus"] },
-    ".ac3": { "video": [], "audio": ["ac3"] },
-    ".wma": { "video": [], "audio": ["wmav2"] },
-    ".mxf": { "video": ["mpeg2video", "dnxhd"], "audio": ["pcm_s16le", "pcm_s24le"] },
-    ".flac": { "video": [], "audio": ["flac"] },
-    ".mp3": { "video": [], "audio": ["libmp3lame"] },
-    ".m4a": { "video": [], "audio": ["aac", "alac"] },
-    ".opus": { "video": [], "audio": ["libopus"] },
-    ".wav": { "video": [], "audio": ["pcm_s16le", "pcm_s24le"] }
+    '.gif': {'video': ['gif'], 'audio': []},
+    '.mov': {'video': ['prores_aw', 'prores_ks', 'dnxhd', 'cfhd', 'qtrle', 'hap', 'h264_videotoolbox', 'libx264'], 'audio': ['pcm_s16le', 'pcm_s24le', 'alac']},
+    '.mp4': {'video': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'h264_amf', 'hevc_amf', 'av1_nvenc', 'av1_amf', 'h264_qsv', 'hevc_qsv', 'av1_qsv', 'vp9_qsv'], 'audio': ['aac', 'mp3', 'ac3', 'opus']},
+    '.mkv': {'video': [], 'audio': ['libvorbis']},
+    '.webm': {'video': ['libvpx', 'libvpx-vp9', 'libsvtav1'], 'audio': ['libopus', 'libvorbis']}
 }
 
-# --- NUEVO: Definir formatos RAW ---
-IMAGE_RAW_FORMATS = {".CR2", ".DNG", ".ARW", ".NEF", ".ORF", ".RW2", ".SR2", ".RAF", ".CR3", ".PEF"}
-# --- CONSTANTES DE HERRAMIENTAS DE IMAGEN ---
+IMAGE_RAW_FORMATS = {'.PEF', '.RW2', '.CR3', '.RAF', '.ARW', '.DNG', '.CR2', '.NEF', '.SR2', '.ORF'}
+IMAGE_INPUT_FORMATS = {'.svg', '.pdf', '.ai', '.eps', '.ps'}.union(IMAGE_RAW_FORMATS)
+IMAGE_EXPORT_FORMATS = ['PNG', 'JPG', 'JPEG', 'WEBP', 'AVIF', 'BMP', 'PDF', 'TIFF']
+IMAGE_RASTER_FORMATS = {'PNG', 'JPG', 'JPEG', 'BMP', 'TIFF', 'WEBP', 'AVIF'}
+IMAGE_VECTOR_FORMATS = {'PDF'}
+FORMATS_WITH_TRANSPARENCY = {'ICO', 'TIFF', 'PNG', 'WEBP', 'AVIF', 'PDF'}
 
-# Actualizar los formatos de entrada permitidos sumando los RAW
-IMAGE_INPUT_FORMATS = {".svg", ".eps", ".ai", ".pdf", ".ps", ".avif"}.union(IMAGE_RAW_FORMATS)
-IMAGE_EXPORT_FORMATS = ["PNG", "JPG", "JPEG", "WEBP", "AVIF", "BMP", "PDF", "TIFF"]
-
-# Agrupar formatos por tipo para mejor manejo en la lógica y la UI
-IMAGE_RASTER_FORMATS = {"PNG", "JPG", "JPEG", "WEBP", "BMP", "TIFF", "AVIF"}
-IMAGE_VECTOR_FORMATS = {"PDF"} 
-FORMATS_WITH_TRANSPARENCY = {"PNG", "WEBP", "TIFF", "ICO", "PDF", "AVIF"}
-
-# DPI por defecto para rasterización (de PDF, SVG, etc.)
 DEFAULT_RASTER_DPI = 300
-
-# Límites de seguridad para escalado
 MAX_RECOMMENDED_DPI = 600
-MAX_SAFE_DIMENSION = 8192  # Píxeles (8K)
+MAX_SAFE_DIMENSION = 8192
 CRITICAL_DPI_THRESHOLD = 1200
-CRITICAL_DIMENSION_THRESHOLD = 16384  # 16K
+CRITICAL_DIMENSION_THRESHOLD = 16384
 
-# Métodos de interpolación para escalado de raster
 INTERPOLATION_METHODS = {
-    "Lanczos (Mejor Calidad)": "LANCZOS",
-    "Bicúbico (Rápido)": "BICUBIC", 
-    "Bilineal (Muy Rápido)": "BILINEAR",
-    "Nearest (Pixelado)": "NEAREST"
+    'Lanczos (Mejor Calidad)': 'LANCZOS',
+    'Bicúbico (Rápido)': 'BICUBIC',
+    'Bilineal (Muy Rápido)': 'BILINEAR',
+    'Nearest (Pixelado)': 'NEAREST'
 }
 
-# Opciones de Canvas
+AI_FAMILY_HOLDER = 'Seleccione la familia...'
+AI_ENGINE_HOLDER = 'Seleccione el motor...'
+AI_MODEL_HOLDER = 'Seleccione el modelo...'
+
 CANVAS_OPTIONS = [
-    "Sin ajuste",
-    "Añadir Margen Externo",
-    "Añadir Margen Interno",
-    "Instagram Post (1080×1080)",
-    "Instagram Story (1080×1920)",
-    "YouTube Thumbnail (1280×720)",
-    "Twitter Header (1500×500)",
-    "Facebook Cover (820×312)",
-    "Personalizado..."
+    'Sin ajuste', 'Añadir Margen Externo', 'Añadir Margen Interno', 
+    'Instagram Post (1080×1080)', 'Instagram Story (1080×1920)', 
+    'YouTube Thumbnail (1280×720)', 'Twitter Header (1500×500)', 
+    'Facebook Cover (820×312)', 'Personalizado...'
 ]
-
-# Mapeo de presets fijos
 CANVAS_PRESET_SIZES = {
-    "Instagram Post (1080×1080)": (1080, 1080),
-    "Instagram Story (1080×1920)": (1080, 1920),
-    "YouTube Thumbnail (1280×720)": (1280, 720),
-    "Twitter Header (1500×500)": (1500, 500),
-    "Facebook Cover (820×312)": (820, 312)
+    'Instagram Post (1080×1080)': (1080, 1080),
+    'Instagram Story (1080×1920)': (1080, 1920),
+    'YouTube Thumbnail (1280×720)': (1280, 720),
+    'Twitter Header (1500×500)': (1500, 500),
+    'Facebook Cover (820×312)': (820, 312)
+}
+CANVAS_POSITIONS = [
+    'Centro', 'Arriba Izquierda', 'Arriba Centro', 'Arriba Derecha', 
+    'Centro Izquierda', 'Centro Derecha', 'Abajo Izquierda', 'Abajo Centro', 'Abajo Derecha'
+]
+CANVAS_OVERFLOW_MODES = ['Reducir hasta que quepa', 'Centrar (puede recortar)', 'Recortar al canvas', 'Advertir y no procesar']
+BACKGROUND_TYPES = ['Color Sólido', 'Degradado', 'Imagen de Fondo']
+GRADIENT_DIRECTIONS = ['Horizontal (Izq → Der)', 'Vertical (Arr → Aba)', 'Diagonal (↘)', 'Diagonal (↙)', 'Radial (Centro)']
+
+REMBG_MODELS = {
+    'Rembg Standard (U2Net)': {
+        'General (Estándar)': {'file': 'isnet-general-use.onnx', 'url': 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx', 'folder': 'rembg'},
+        'General Lite (Rápido)': {'file': 'u2netp.onnx', 'url': 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx', 'folder': 'rembg'},
+        'Portrait (Retratos)': {'file': 'u2net.onnx', 'url': 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx', 'folder': 'rembg'},
+        'DIS (Bordes Finos/Complejo)': {'file': 'u2net_human_seg.onnx', 'url': 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net_human_seg.onnx', 'folder': 'rembg'},
+        'COD (Objetos Camuflados)': {'file': 'isnet-anime.onnx', 'url': 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-anime.onnx', 'folder': 'rembg'},
+        'HRSOD (Alta Detección)': {'file': 'birefnet-cod.onnx', 'url': 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-COD-epoch_125.onnx', 'folder': 'rembg'},
+        'Massive (Entrenamiento Masivo)': {'file': 'birefnet-hrsod.onnx', 'url': 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-HRSOD_DHU-epoch_115.onnx', 'folder': 'rembg'}
+    }
 }
 
-# Posiciones para el contenido en el canvas
-CANVAS_POSITIONS = [
-    "Centro",
-    "Arriba Izquierda",
-    "Arriba Centro",
-    "Arriba Derecha",
-    "Centro Izquierda",
-    "Centro Derecha",
-    "Abajo Izquierda",
-    "Abajo Centro",
-    "Abajo Derecha"
-]
+UPSCALING_TOOLS = {
+    'Waifu2x': {'name': 'Waifu2x', 'folder': 'waifu2x', 'exe': 'waifu2x-ncnn-vulkan.exe', 'url': 'https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20250915/waifu2x-ncnn-vulkan-20250915-windows.zip'},
+    'SRMD': {'name': 'SRMD', 'folder': 'srmd', 'exe': 'srmd-ncnn-vulkan.exe', 'url': 'https://github.com/nihui/srmd-ncnn-vulkan/releases/download/20220728/srmd-ncnn-vulkan-20220728-windows.zip'},
+    'Upscayl': {'name': 'Upscayl (Global Engine)', 'folder': 'upscayl', 'exe': 'upscayl-bin.exe', 'url': 'https://github.com/upscayl/upscayl-ncnn/releases/download/20251207-174704/upscayl-bin-20251207-174704-windows.zip', 'models_url': 'https://github.com/upscayl/custom-models/archive/refs/heads/main.zip'}
+}
 
-# Modos de manejo cuando la imagen excede el canvas
-CANVAS_OVERFLOW_MODES = [
-    "Reducir hasta que quepa",           
-    "Centrar (puede recortar)",
-    "Recortar al canvas",
-    "Advertir y no procesar"
-]
+UPSCAYL_MODELS_MAP = {
+    'realesrgan-x4plus': 'Real-ESRGAN (General / Fotografía)',
+    'realesrgan-x4plus-anime': 'Real-ESRGAN (Anime / Ilustración)',
+    'realesr-animevideov3-x4': 'Anime Video V3 (x4)',
+    'RealESRGAN_General_x4_v3': 'Real-ESRGAN V3 (Ligero y Rápido)',
+    'RealESRGAN_General_WDN_x4_v3': 'Real-ESRGAN V3 WDN (Red Profunda)',
+    '4xHFA2k': 'HFA2k (Texturas de Alta Frecuencia)',
+    '4xLSDIR': 'LSDIR (Fotografía Realista)',
+    '4xLSDIRCompactC3': 'LSDIR Compacto (Procesamiento Rápido)',
+    '4xLSDIRplusC': 'LSDIR PlusC (Alta Fidelidad)',
+    '4xNomos8kSC': 'Nomos8k (Detalles a Escala 8k)',
+    '4x_NMKD-Siax_200k': 'NMKD Siax (Universal / Calidad JPEG)',
+    '4x_NMKD-Superscale-SP_178000_G': 'NMKD Superscale (Fotos sin Artefactos)',
+    'uniscale_restore': 'Uniscale Restore (Restauración de Daños)',
+    'unknown-2.0.1': 'The Unknown (Experimental / Nitidez Extrema)',
+    'DF2K_x4': 'RealSR (Detalle de Texturas)',
+    'DF2K_JPEG_x4': 'RealSR JPEG (Reduce Compresión)',
+    'x4': 'Modelo Genérico x4'
+}
 
-# Opciones de cambio de fondo
-BACKGROUND_TYPES = [
-    "Color Sólido",
-    "Degradado",
-    "Imagen de Fondo"
-]
+WAIFU2X_MODELS = {
+    'CU-Net (Alta Calidad)': {'model': 'models-cunet', 'scales': ['1x', '2x', '4x', '8x', '16x', '32x']},
+    'Anime Style Art (Clásico)': {'model': 'models-upconv_7_anime_style_art_rgb', 'scales': ['1x', '2x', '4x', '8x', '16x', '32x']},
+    'Photo (Fotos Reales)': {'model': 'models-upconv_7_photo', 'scales': ['1x', '2x', '4x', '8x', '16x', '32x']}
+}
 
-GRADIENT_DIRECTIONS = [
-    "Horizontal (Izq → Der)",
-    "Vertical (Arr → Aba)",
-    "Diagonal (↘)",
-    "Diagonal (↙)",
-    "Radial (Centro)"
-]
+SRMD_MODELS = {
+    'Estándar (General)': {'model': 'models-srmd', 'scales': ['2x', '3x', '4x']}
+}
 
-# Formatos que soportan transparencia
-FORMATS_WITH_TRANSPARENCY = {"PNG", "WEBP", "TIFF", "ICO", "PDF"}
+FFMPEG_SAFE_VERSION = '8.0.1'
+FFMPEG_SAFE_URL = 'https://github.com/GyanD/codexffmpeg/releases/download/8.0.1/ffmpeg-8.0.1-full_build.zip'
 
 REMBG_MODEL_FAMILIES = {
     "Rembg Standard (U2Net)": {
         "isnet-general-use (Recomendado)": {
             "file": "isnet-general-use.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
-            "folder": "rembg" 
+            "folder": "rembg"
         },
         "u2netp (Rápido)": {
             "file": "u2netp.onnx",
@@ -517,69 +472,62 @@ REMBG_MODEL_FAMILIES = {
         }
     },
     "BiRefNet (Next-Gen 2024)": {
-        # --- MODELOS GENERALES ---
         "General (Estándar)": {
-            "file": "birefnet-general.onnx",  # ✅ Nombre que rembg espera
+            "file": "birefnet-general.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx",
             "folder": "rembg"
         },
         "General Lite (Rápido)": {
-            "file": "birefnet-general-lite.onnx",  # ✅ Cambiado
+            "file": "birefnet-general-lite.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
             "folder": "rembg"
         },
-        
-        # --- ESPECIALIZADOS ---
         "Portrait (Retratos)": {
-            "file": "birefnet-portrait.onnx",  # ✅ Cambiado
+            "file": "birefnet-portrait.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-portrait-epoch_150.onnx",
             "folder": "rembg"
         },
         "DIS (Bordes Finos/Complejo)": {
-            "file": "birefnet-dis.onnx",  # ✅ Cambiado
+            "file": "birefnet-dis.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-DIS-epoch_590.onnx",
             "folder": "rembg"
         },
         "COD (Objetos Camuflados)": {
-            "file": "birefnet-cod.onnx",  # ✅ Cambiado
+            "file": "birefnet-cod.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-COD-epoch_125.onnx",
             "folder": "rembg"
         },
         "HRSOD (Alta Detección)": {
-            "file": "birefnet-hrsod.onnx",  # ✅ Cambiado
+            "file": "birefnet-hrsod.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-HRSOD_DHU-epoch_115.onnx",
             "folder": "rembg"
         },
-        
-        # --- ALTA RESOLUCIÓN (HR) & MASIVOS ---
         "Massive (Entrenamiento Masivo)": {
-            "file": "birefnet-massive.onnx",  # ✅ Cambiado
+            "file": "birefnet-massive.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
             "folder": "rembg"
         },
         "HR General (4K/8K)": {
-            "file": "birefnet-hr-general.onnx",  # ✅ Cambiado
+            "file": "birefnet-hr-general.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet_HR-general-epoch_130.onnx",
             "folder": "rembg"
         },
         "HR Matting (Recorte Ultra Fino)": {
-            "file": "birefnet-hr-matting.onnx",  # ✅ Cambiado
+            "file": "birefnet-hr-matting.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet_HR-matting-epoch_135.onnx",
             "folder": "rembg"
         }
     },
-
-    # --- NUEVO BLOQUE: RMBG 2.0 (Descarga Manual) ---
     "RMBG 2.0 (BriaAI)": {
         "Standard (Automático - 977 MB)": {
-            "file": "rmbg2_gatis.onnx", 
+            "file": "rmbg2_gatis.onnx",
             "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/bria-rmbg-2.0.onnx",
             "folder": "rmbg2"
         },
         "Standard (1.02 GB)": {
-            "file": "model.onnx", 
+            "file": "model.onnx",
             "url": "https://huggingface.co/briaai/RMBG-2.0/tree/main/onnx",
-            "folder": "rmbg2" 
+            "folder": "rmbg2"
         },
         "BnB4 (Recomendado - 355 MB)": {
             "file": "model_bnb4.onnx",
@@ -601,83 +549,5 @@ REMBG_MODEL_FAMILIES = {
             "url": "https://huggingface.co/briaai/RMBG-2.0/tree/main/onnx",
             "folder": "rmbg2"
         }
-    }
-}
-
-UPSCALING_TOOLS = {
-    "Real-ESRGAN": {
-        "name": "Real-ESRGAN",
-        "folder": "realesrgan",
-        "exe": "realesrgan-ncnn-vulkan.exe",
-        "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip"
-    },
-    "Waifu2x": {
-        "name": "Waifu2x",
-        "folder": "waifu2x",
-        "exe": "waifu2x-ncnn-vulkan.exe",
-        "url": "https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20250915/waifu2x-ncnn-vulkan-20250915-windows.zip"
-    },
-    "RealSR": {
-        "name": "RealSR",
-        "folder": "realsr",
-        "exe": "realsr-ncnn-vulkan.exe",
-        "url": "https://github.com/nihui/realsr-ncnn-vulkan/releases/download/20220728/realsr-ncnn-vulkan-20220728-windows.zip"
-    },
-    "SRMD": {
-        "name": "SRMD",
-        "folder": "srmd",
-        "exe": "srmd-ncnn-vulkan.exe",
-        "url": "https://github.com/nihui/srmd-ncnn-vulkan/releases/download/20220728/srmd-ncnn-vulkan-20220728-windows.zip"
-    }
-}
-
-# --- CONSTANTES DE REESCALADO (IA) ---
-
-# Definimos el modelo interno y las escalas permitidas para cada opción
-REALESRGAN_MODELS = {
-    "Anime Video v3 (Rápido, Multi-escala)": {
-        "model": "realesr-animevideov3",
-        "scales": ["2x", "3x", "4x"]
-    },
-    "x4 Plus (Fotos / General)": {
-        "model": "realesrgan-x4plus",
-        "scales": ["4x"]  # Solo nativo 4x
-    },
-    "x4 Plus Anime (Ilustraciones)": {
-        "model": "realesrgan-x4plus-anime",
-        "scales": ["4x"]  # Solo nativo 4x
-    },
-}
-
-WAIFU2X_MODELS = {
-    "CU-Net (Alta Calidad)": {
-        "model": "models-cunet",
-        "scales": ["1x", "2x", "4x", "8x", "16x", "32x"]
-    },
-    "Anime Style Art (Clásico)": {
-        "model": "models-upconv_7_anime_style_art_rgb",
-        "scales": ["1x", "2x", "4x", "8x", "16x", "32x"]
-    },
-    "Photo (Fotos Reales)": {
-        "model": "models-upconv_7_photo",
-        "scales": ["1x", "2x", "4x", "8x", "16x", "32x"]
-    },
-}
-
-REALSR_MODELS = {
-    "Estándar (DF2K)": {
-        "model": "models-DF2K",
-        "scales": ["4x"]
-    },
-    "Reparar JPEG (DF2K_JPEG)": {
-        "model": "models-DF2K_JPEG",
-        "scales": ["4x"]
-    }
-}
-
-SRMD_MODELS = {
-    "Estándar (General)": {
-        "model": "models-srmd",
-        "scales": ["2x", "3x", "4x"]
     }
 }

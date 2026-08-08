@@ -1,64 +1,140 @@
-# DowP Downloader - Descargador de Videos para DaVinci Resolve
+# DowP – Edición Rescatada de Lost Media 🕵️‍♂️
 
-Aplicación de escritorio que permite descargar videos de plataformas populares e importarlos directamente a DaVinci Resolve con un solo clic.
+**Versión 1.4.4.1 (2026)** – Rescatado por [Zking500](https://github.com/Zking500)
+
+> *"Lo que una vez se perdió, ahora ha sido restaurado."*
+
+![DowP Splash](https://i.imgur.com/placeholder.png) <!-- Puedes añadir una captura si quieres -->
+
+## 📜 La Historia
+
+Este proyecto es un **rescate de código perdido** (lost media). La versión original de DowP (1.4.4) fue creada por **~~MarckDP~~** a inicios de 2026, pero desapareció de Internet y se consideraba irrecuperable. Tras un arduo proceso de ingeniería inversa y reconstrucción, esta versión ha sido **resucitada, adaptada y mejorada** para funcionar en sistemas modernos.
+
+**No es un fork oficial**, sino un **homenaje y continuación** del trabajo original.
+
+## ✨ Créditos
+
+- **Código original**: ~~MarckDP~~ (lost media) – gracias por la base.
+- **Rescate, restauración y mejoras**: [Zking500](https://github.com/Zking500)
+- **Inspiración**: La comunidad de preservación de software.
+
+## 🚀 Características
+
+- ✅ Descarga videos de YouTube y otras plataformas (mediante `yt-dlp`).
+- ✅ Soporte para **playlists** y selección de calidad.
+- ✅ **Recodificación** de videos (códecs, resolución, FPS, etc.).
+- ✅ **Extracción de fotogramas** y **reescalado por IA** (Upscayl, Waifu2x, SRMD).
+- ✅ **Integración con DaVinci Resolve** (importación automática a la Media Pool).
+- ✅ Interfaz gráfica con **CustomTkinter** (tema oscuro/claro).
+- ✅ **Modo por lotes** para descargar múltiples URLs o archivos locales.
+- ✅ **Portable** – no requiere instalación, solo ejecutar.
 
 ## ⚠️ Requisitos Previos
 
-**IMPORTANTE: Lee todos los requisitos antes de comenzar**
+### Para Linux (recomendado)
 
-1.  **DaVinci Resolve 18 o superior** instalado y abierto
-2.  **Python 3.10 (64-bit)** - Versiones distintas causarán errores
-3.  **Habilitar scripting externo en DaVinci Resolve**:
-    -   Ve a `Preferences -> System -> General`
-    -   En `External scripting`, selecciona `Local`
-    -   Reinicia DaVinci Resolve
+- **Python 3.10 o superior** (3.11+ también funciona).
+- **pip** y **entorno virtual** (opcional pero recomendado).
+- **FFmpeg** instalado en el sistema (`sudo apt install ffmpeg` en Debian/Ubuntu).
+- **Deno** (opcional pero recomendado para YouTube – se puede instalar desde la app).
 
-## 🚀 Opciones de Instalación
+### Para Windows (en desarrollo)
 
-### Opción A: Ejecutable (.exe) - RECOMENDADO para usuarios principiantes
+- Python 3.10 (64-bit) con **tcl/tk** habilitado.
+- DaVinci Resolve 18+ (si quieres la integración).
 
-1. **Descarga el archivo `DowP_Downloader.exe` de la carpeta `dist/`**
-2. **Asegúrate de que DaVinci Resolve esté abierto**
-3. **Ejecuta el archivo .exe** (puede que Windows te pida permisos)
-4. **Listo para usar**
+## 📦 Instalación y Ejecución
 
-### Opción B: Ejecutar desde código fuente
+### Opción A: Ejecutable (próximamente)
 
-**Para usuarios avanzados o desarrolladores**
+Pronto estarán disponibles los ejecutables para Linux y Windows en la sección [Releases](https://github.com/Zking500/DowP_Downloader/releases).
 
-1. **Instala Python 3.10** (verifica con: `python --version`)
-   ⚠️ **CRÍTICO**: Durante la instalación, **marca SÍ la casilla "tcl/tk and IDLE"** 
-   - Si ya instalaste Python y falta tkinter: Modifica la instalación marcando tcl/tk
-   - En Windows: Configuración -> Aplicaciones -> Python -> Modificar -> Marcar tcl/tk
+### Opción B: Desde el código fuente (recomendado para contribuir)
 
-2. **Instala las dependencias**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+```bash
+# 1. Clona el repositorio
+git clone https://github.com/Zking500/DowP_Downloader.git
+cd DowP_Downloader
 
-3. **Ejecuta la aplicación**:
-    ```bash
-    python main.py
-    ```
-   
-   � **Error común**: "No module named 'tkinter'" significa que Python se instaló sin tcl/tk. Reinstala marcando esa opción.
+# 2. Crea y activa un entorno virtual (Linux/macOS)
+python3 -m venv venv
+source venv/bin/activate
 
-## 📋 Guía Rápida de Uso
+# En Windows: venv\Scripts\activate
 
-1. **Abre DaVinci Resolve** (¡debe estar abierto antes de usar la app!)
-2. **Ejecuta DowP Downloader**
-3. **Pega la URL del video** que quieres descargar
-4. **Selecciona calidad y formato**
-5. **Activa "Importar a DaVinci"** si quieres que se importe automáticamente
-6. **Descarga y disfruta**
+# 3. Instala las dependencias
+pip install -r requirements.txt
 
-## 🔧 Solución de Problemas
+# 4. Ejecuta la aplicación
+python main.py
 
-**Si la aplicación no se conecta a DaVinci Resolve:**
-- Verifica que DaVinci esté abierto
-- Comprueba que el scripting externo esté habilitado
-- Reinicia ambas aplicaciones
+Nota: Si te da error de tkinter, asegúrate de tener instalada la librería Tk (en Linux: sudo apt install python3-tk).
 
-**Errores de DLL (0x7e)**: Usa el ejecutable .exe, ya incluye todas las librerías necesarias
+🖥️ Uso Básico
+Abre la aplicación.
 
-**Python 3.10 es obligatorio**: Versiones 3.9 o 3.11+ causarán errores de conexión
+Pega una URL de YouTube (o de otra plataforma compatible).
+
+Selecciona calidad y formato (o usa el modo rápido).
+
+(Opcional) Activa la recodificación o la importación a DaVinci Resolve.
+
+Haz clic en "Iniciar Descarga".
+
+Para lotes, usa la pestaña "Proceso por Lotes".
+
+🛠️ Solución de Problemas
+Problema	Solución
+Error 403 (Forbidden)	Configura cookies desde la sección "Cookies" (usa la opción "Desde Navegador" o archivo manual).
+Falta FFmpeg	Instálalo con sudo apt install ffmpeg (Linux) o descárgalo desde la app.
+No se conecta a DaVinci Resolve	Asegúrate de que Resolve esté abierto y que el scripting externo esté habilitado (Preferencias → Sistema → General → External scripting → Local).
+Error de Python 3.10	Usa Python 3.10 o superior; si usas 3.11, funciona igual.
+📌 Estado del Proyecto
+✅ Linux: Totalmente funcional.
+
+🔄 Windows: En pruebas (la integración con Resolve requiere ajustes).
+
+🧪 macOS: No probado (pero debería funcionar con ajustes menores).
+
+🤝 Contribuciones
+¡Las contribuciones son bienvenidas! Si encuentras un bug o quieres mejorar algo, abre un issue o un pull request. Eso sí, por favor, respeta el espíritu de "rescate" y mantén los créditos originales.
+
+📄 Licencia
+Este proyecto se distribuye bajo la licencia MIT (al igual que el original). Consulta el archivo LICENSE para más detalles.
+
+🙏 Agradecimientos
+A ~~MarckDP~~ por el trabajo original (aunque se haya perdido, su legado perdura).
+
+A la comunidad de yt-dlp y ffmpeg por las herramientas que hacen posible esto.
+
+A ti, por usar y mantener vivo este proyecto.
+
+Hecho con ❤️ y un poco de nostalgia digital.
+
+text
+
+---
+
+## 🖼️ ¿Quieres añadir una imagen?
+
+Si tienes una captura de pantalla de la aplicación, súbela a la carpeta del repositorio y referencia con `![DowP Splash](ruta/a/la/imagen.png)`. Puedes usar la que tengas para darle más vida al README.
+
+---
+
+## 📌 Nota sobre el tachado
+
+El texto `~~MarckDP~~` se renderiza como tachado en GitHub Markdown. Así queda ese toque de humor y dramatismo que pedías.
+
+---
+
+## ✅ Próximo paso
+
+1. **Copia este contenido** y reemplaza el `README.md` en tu repositorio.
+2. **Haz commit y push**:
+
+```bash
+git add README.md
+git commit -m "Actualiza README con la historia del rescate"
+git push
+Ve a la página del repositorio y verifica que se vea bien.
+
