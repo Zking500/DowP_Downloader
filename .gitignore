@@ -52,6 +52,7 @@ msys32/
 # Binaries and external tools
 # Ignoring the 'bin' directory which seems to contain external executables
 bin/
+~\AppData\Roaming/
 
 # Log files
 *.log
